@@ -1,5 +1,7 @@
 use std::process::{Command, exit};
 use std::io::{stdout, Write, stdin};
+use std::path::Path;
+use std::env::set_current_dir;
 
 struct Cmd {
     cmd: String,
@@ -21,7 +23,26 @@ fn main() {
 fn handle_command(command: Cmd) {
     match command.cmd.as_str() {
         "exit" => exit(0),
+        "cd" => handle_dir_change(command.args),
         _ => execute_file(command)
+    }
+}
+
+fn handle_dir_change(args: Vec<String>) {
+    match args.len() {
+        0 => println!("Must provide an argument"),
+        1 => {
+            match args.first() {
+                Some(arg) => {
+                    match set_current_dir(&Path::new(arg)) {
+                        Err(e) => println!("Failed to change working dir {}", e),
+                        _ => {}
+                    }
+                },
+                None => println!("Failed to handle args")
+            }
+        }
+        num => println!("Invalid number of arguments {}", num)
     }
 }
 
