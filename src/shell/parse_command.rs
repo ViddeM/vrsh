@@ -40,6 +40,8 @@ impl From<ReadlineError> for ParseError {
     }
 }
 
+const HOME_ICON: &str = "~";
+
 pub fn parse_input(rl: &mut Editor<()>) -> Result<Cmd, ParseError> {
     let prompt_prefix = get_prompt()?;
     let prompt = format!("{} > ", prompt_prefix);
@@ -78,8 +80,8 @@ fn get_prompt() -> Result<String, ParseError> {
     };
 
     let home_dir = get_home_dir()?;
+    let prompt = wd.replace(home_dir.as_str(), HOME_ICON);
 
-    let prompt = wd.replace(home_dir.as_str(), "~");
     return Ok(prompt)
 }
 
