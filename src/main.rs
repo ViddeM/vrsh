@@ -5,9 +5,13 @@ use shell::parse_command::{parse_input};
 
 mod shell;
 
+use rustyline::{Editor};
+use std::borrow::{BorrowMut};
+
 fn main() {
+    let mut rl = Editor::<()>::new();
     loop {
-        let cmd = parse_input();
+        let cmd = parse_input(rl.borrow_mut());
         match cmd {
             Ok(command) => match handle_command(command) {
                 CommandStatus::Ok => {}

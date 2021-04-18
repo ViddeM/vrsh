@@ -2,14 +2,17 @@ use crate::shell::command::Cmd;
 use std::env::{current_dir, var_os};
 use std::fmt;
 use std::fmt::{Display, Formatter};
-use std::io::{stdin, stdout, Error, Write};
+use std::io::{Error};
+use rustyline::Editor;
+use rustyline::error::ReadlineError;
 
 pub enum ParseError {
     IO(std::io::Error),
     NoCommand,
     NoWorkingDir,
     NoHomeVar,
-    Internal
+    Internal,
+    RLError(ReadlineError)
 }
 
 impl Display for ParseError {
@@ -20,6 +23,7 @@ impl Display for ParseError {
             ParseError::NoWorkingDir => write!(f, "failed to retrieve current working directory"),
             ParseError::NoHomeVar => write!(f, "environment variable HOME not set or set to empty"),
             ParseError::Internal => write!(f, "something went wrong"),
+            ParseError::RLError(e) => write!(f, "readline encountered an error: {}", e)
         }
     }
 }
@@ -30,15 +34,21 @@ impl From<std::io::Error> for ParseError {
     }
 }
 
-pub fn parse_input() -> Result<Cmd, ParseError> {
-    let prompt = get_prompt()?;
+impl From<ReadlineError> for ParseError {
+    fn from(rle: ReadlineError) -> Self {
+        ParseError::RLError(rle)
+    }
+}
 
-    print!("{} > ", prompt);
-    // Make sure it is printed immediately
-    stdout().flush()?;
+pub fn parse_input(rl: &mut Editor<()>) -> Result<Cmd, ParseError> {
+    let prompt_prefix = get_prompt()?;
+    let prompt = format!("{} > ", prompt_prefix);
 
-    let mut s = String::new();
-    stdin().read_line(&mut s)?;
+    let s = match rl.readline(prompt.as_str()) {
+        Ok(val) => val,
+        Err(e) => return Err(ParseError::RLError(e)),
+    };
+
     let command = s
         .trim()
         .split_whitespace()
@@ -49,6 +59,7 @@ pub fn parse_input() -> Result<Cmd, ParseError> {
         None => return Err(ParseError::NoCommand),
     };
 
+    rl.add_history_entry(s);
     return Ok(Cmd {
         cmd: cmd_args.0.to_string(),
         args: cmd_args
