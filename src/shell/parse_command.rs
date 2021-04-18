@@ -5,6 +5,7 @@ use std::fmt::{Display, Formatter};
 use std::io::{Error};
 use rustyline::Editor;
 use rustyline::error::ReadlineError;
+use crate::shell::rl_helper::RLHelper;
 
 pub enum ParseError {
     IO(std::io::Error),
@@ -42,7 +43,7 @@ impl From<ReadlineError> for ParseError {
 
 const HOME_ICON: &str = "~";
 
-pub fn parse_input(rl: &mut Editor<()>) -> Result<Cmd, ParseError> {
+pub fn parse_input(rl: &mut Editor<RLHelper>) -> Result<Cmd, ParseError> {
     let prompt_prefix = get_prompt()?;
     let prompt = format!("{} > ", prompt_prefix);
 
