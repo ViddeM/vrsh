@@ -23,7 +23,8 @@ fn main() {
     let helper = RLHelper {
         completer: FilenameCompleter::new(),
         hinter: HistoryHinter{},
-        colored_prompt: MatchingBracketHighlighter::new()
+        highlighter: MatchingBracketHighlighter::new(),
+        colored_prompt: "".to_owned(),
     };
     let mut rl = Editor::with_config(config);
     rl.set_helper(Some(helper));

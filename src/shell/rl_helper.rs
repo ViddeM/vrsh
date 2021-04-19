@@ -5,13 +5,17 @@ use rustyline::completion::{FilenameCompleter, Pair, Completer};
 use rustyline::hint::{HistoryHinter, Hinter};
 use rustyline::highlight::{MatchingBracketHighlighter, Highlighter};
 use rustyline::Context;
+use std::borrow::Cow;
+use std::borrow::Cow::{Owned, Borrowed};
+use crate::shell::colors;
 
 
 #[derive(Helper)]
 pub struct RLHelper {
     pub completer: FilenameCompleter,
     pub hinter: HistoryHinter,
-    pub colored_prompt: MatchingBracketHighlighter
+    pub highlighter: MatchingBracketHighlighter,
+    pub colored_prompt: String
 }
 
 impl Validator for RLHelper {
@@ -32,7 +36,29 @@ impl Completer for RLHelper {
 }
 
 impl Highlighter for RLHelper {
+    fn highlight<'l>(&self, line: &'l str, pos: usize) -> Cow<'l, str> {
+        self.highlighter.highlight(line, pos)
+    }
 
+    fn highlight_prompt<'b, 's: 'b, 'p: 'b>(
+        &'s self,
+        prompt: &'p str,
+        default: bool,
+    ) -> Cow<'b, str> {
+        if default {
+            Owned(colors::GREEN.to_owned() + prompt + colors::RESET)
+        } else {
+            Borrowed(prompt)
+        }
+    }
+
+    fn highlight_hint<'h>(&self, hint: &'h str) -> Cow<'h, str> {
+        Owned(colors::MAGENTA.to_owned() + hint + colors::RESET)
+    }
+
+    fn highlight_char(&self, line: &str, pos: usize) -> bool {
+        self.highlighter.highlight_char(line, pos)
+    }
 }
 
 impl Hinter for RLHelper {
