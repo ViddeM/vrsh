@@ -1,0 +1,27 @@
+use crate::shell::command::{Cmd, CmdPart};
+
+grammar;
+
+match {
+    "|" => PIPE,
+    r#"[^\s|"]+"# => WORD,
+    r#""[^"]*""# => STRING,
+}
+
+pub Command: Cmd = {
+    <p0:Part> <prest:(PIPE <Part>)*> => Cmd{
+        parts: vec![p0].into_iter().chain(prest.into_iter()).collect(),
+    }
+}
+
+Part: CmdPart = {
+    (Arg Arg*) => CmdPart {
+        cmd: <>.0,
+        args: <>.1,
+    }
+}
+
+Arg: String = {
+    STRING => String::from(<>.strip_prefix('"').unwrap().strip_suffix('"').unwrap()),
+    WORD => String::from(<>),
+}

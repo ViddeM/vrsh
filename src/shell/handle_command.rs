@@ -1,4 +1,4 @@
-use crate::shell::command::Cmd;
+use crate::shell::command::{Cmd, CmdPart};
 use std::env::set_current_dir;
 use std::path::Path;
 use std::process::Command;
@@ -9,10 +9,12 @@ pub enum CommandStatus {
 }
 
 pub fn handle_command(command: Cmd) -> CommandStatus {
-    match command.cmd.as_str() {
-        "exit" => return CommandStatus::Exit,
-        "cd" => handle_dir_change(command.args),
-        _ => execute_file(command),
+    for part in command.parts.into_iter() {
+        match part.cmd.as_str() {
+            "exit" => return CommandStatus::Exit,
+            "cd" => handle_dir_change(part.args),
+            _ => execute_file(part),
+        }
     }
 
     CommandStatus::Ok
@@ -33,11 +35,11 @@ fn handle_dir_change(args: Vec<String>) {
     }
 }
 
-fn execute_file(command: Cmd) {
-    match Command::new(&command.cmd).args(command.args).status() {
+fn execute_file(cmd: CmdPart) {
+    match Command::new(&cmd.cmd).args(cmd.args).status() {
         Ok(_) => {}
         Err(e) => {
-            println!("Failed to run command '{}' due to {}", &command.cmd, e)
+            println!("Failed to run command '{}' due to {}", &cmd.cmd, e)
         }
     }
 }

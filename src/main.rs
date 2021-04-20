@@ -12,6 +12,9 @@ use rustyline::hint::{HistoryHinter};
 use rustyline::highlight::{MatchingBracketHighlighter};
 use crate::shell::rl_helper::RLHelper;
 
+use lalrpop_util::lalrpop_mod;
+lalrpop_mod!(pub grammar);
+
 fn main() {
     let config = Config::builder()
         .history_ignore_space(true)
