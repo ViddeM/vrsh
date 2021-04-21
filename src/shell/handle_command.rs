@@ -1,32 +1,40 @@
-use crate::shell::command::{Cmd};
+use crate::shell::command::{Cmd, CmdPart};
 use std::env::set_current_dir;
 use std::path::Path;
-use std::process::{Command, Child};
+use std::process::{Command, Child, Stdio};
 
 pub enum CommandStatus {
     Ok,
     Exit,
 }
 
+// TODO: NEVER LOOK AT THIS CODE AGAIN, I THINK IT FUCKING WORKS!
 pub fn handle_command(command: Cmd) -> CommandStatus {
     let mut all_prevs: Vec<Child> = Vec::new();
-    // let mut prev_process: Option<Child> = None;
-    for (_, part) in command.parts.into_iter().enumerate().rev() {
+    let mut output = Some(Stdio::inherit());
+    for (index, part) in command.parts.into_iter().enumerate().rev() {
         match part.cmd.as_str() {
             "exit" => return CommandStatus::Exit,
             "cd" => handle_dir_change(part.args),
             _ => {
-                match Command::new(&part.cmd)
-                    .args(part.args)
-                    .spawn() {
-                    Ok(c) => {
-                        all_prevs.push(c);
-                        // Some(c)
-                    },
-                    Err(e) => {
-                        println!("Failed to spawn process {}", e);
-                        // None
-                    }
+                if let Some(mut c) = run_command(part,
+                                                 match output {
+                                                    Some(o) => {
+                                                        output = None;
+                                                        o
+                                                    },
+                                                    None => Stdio::piped()
+                                                 },
+                                                 if index == 0 { Stdio::inherit() }
+                                                 else { Stdio::piped() } ) {
+
+                    output = Some(match c.stdin.take() {
+                        Some(v) => Stdio::from(v),
+                        None => Stdio::inherit()
+                    });
+
+                    all_prevs.push(c);
+
                 }
             },
         }
@@ -40,6 +48,22 @@ pub fn handle_command(command: Cmd) -> CommandStatus {
     }
 
     CommandStatus::Ok
+}
+
+fn run_command(part: CmdPart, output: Stdio, input: Stdio) -> Option<Child> {
+    return match Command::new(&part.cmd)
+        .args(part.args)
+        .stdout(output)
+        .stdin(input)
+        .spawn() {
+        Ok(c) => {
+            Some(c)
+        },
+        Err(e) => {
+            println!("Failed to spawn process {}", e);
+            None
+        }
+    }
 }
 
 fn handle_dir_change(args: Vec<String>) {
