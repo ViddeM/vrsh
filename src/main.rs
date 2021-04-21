@@ -18,6 +18,7 @@ use std::io::Error;
 use signal_hook::SigId;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+use crate::shell::parse_command::ParseError;
 lalrpop_mod!(pub grammar);
 
 fn main() {
@@ -46,6 +47,7 @@ fn main() {
                 CommandStatus::Ok => {}
                 CommandStatus::Exit => exit(0),
             },
+            Err(ParseError::RLIgnore) => {},
             Err(e) => println!("Failed to parse command: {}", e),
         }
     }

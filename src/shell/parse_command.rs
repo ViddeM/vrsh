@@ -15,6 +15,7 @@ pub enum ParseError {
     NoHomeVar,
     Internal,
     RLError(ReadlineError),
+    RLIgnore,
     LALRPopErr(String)
 }
 
@@ -27,6 +28,7 @@ impl Display for ParseError {
             ParseError::Internal => write!(f, "something went wrong"),
             ParseError::RLError(e) => write!(f, "readline encountered an error: {}", e),
             ParseError::LALRPopErr(s) => write!(f, "failed parsing: {}", s),
+            ParseError::RLIgnore => write!(f, "ignored error"),
         }
     }
 }
@@ -52,7 +54,12 @@ pub fn parse_input(rl: &mut Editor<RLHelper>) -> Result<Cmd, ParseError> {
 
     let s = match rl.readline(prompt.as_str()) {
         Ok(val) => val,
-        Err(e) => return Err(ParseError::RLError(e)),
+        Err(e) => {
+            return match e {
+                ReadlineError::Interrupted => Err(ParseError::RLIgnore),
+                _ => Err(ParseError::RLError(e)),
+            }
+        }
     };
 
     let command: Cmd = match CommandParser::new().parse(&s) {
