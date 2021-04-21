@@ -1,4 +1,4 @@
-use crate::shell::command::Cmd;
+use crate::shell::command::{Cmd};
 use std::env::{current_dir, var_os};
 use std::fmt;
 use std::fmt::{Display, Formatter};
@@ -44,7 +44,7 @@ impl From<ReadlineError> for ParseError {
 }
 
 // TODO: extend grammar so that we can replace all ~ to /home/user automatically.
-const HOME_ICON: &str = "~";
+const HOME: &str = "~";
 
 pub fn parse_input(rl: &mut Editor<RLHelper>) -> Result<Cmd, ParseError> {
     let prompt_prefix = get_prompt()?;
@@ -72,7 +72,7 @@ fn get_prompt() -> Result<String, ParseError> {
     };
 
     let home_dir = get_home_dir()?;
-    let prompt = wd.replace(home_dir.as_str(), HOME_ICON);
+    let prompt = wd.replace(home_dir.as_str(), HOME);
 
     return Ok(prompt)
 }

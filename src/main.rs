@@ -31,6 +31,7 @@ fn main() {
     };
     let mut rl = Editor::with_config(config);
     rl.set_helper(Some(helper));
+
     loop {
         let cmd = parse_input(rl.borrow_mut());
         match cmd {

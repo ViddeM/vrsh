@@ -1,7 +1,7 @@
-use crate::shell::command::{Cmd, CmdPart};
+use crate::shell::command::{Cmd};
 use std::env::set_current_dir;
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, Child};
 
 pub enum CommandStatus {
     Ok,
@@ -9,11 +9,33 @@ pub enum CommandStatus {
 }
 
 pub fn handle_command(command: Cmd) -> CommandStatus {
-    for part in command.parts.into_iter() {
+    let mut all_prevs: Vec<Child> = Vec::new();
+    // let mut prev_process: Option<Child> = None;
+    for (_, part) in command.parts.into_iter().enumerate().rev() {
         match part.cmd.as_str() {
             "exit" => return CommandStatus::Exit,
             "cd" => handle_dir_change(part.args),
-            _ => execute_file(part),
+            _ => {
+                match Command::new(&part.cmd)
+                    .args(part.args)
+                    .spawn() {
+                    Ok(c) => {
+                        all_prevs.push(c);
+                        // Some(c)
+                    },
+                    Err(e) => {
+                        println!("Failed to spawn process {}", e);
+                        // None
+                    }
+                }
+            },
+        }
+    }
+
+    for mut child in all_prevs.into_iter() {
+        match child.wait() {
+            Ok(_) => {}
+            Err(e) => println!("Failed to wait for child {}", e)
         }
     }
 
@@ -32,14 +54,5 @@ fn handle_dir_change(args: Vec<String>) {
             None => println!("failed to handle args"),
         },
         num => println!("invalid amount of arguments to cd: {}", num),
-    }
-}
-
-fn execute_file(cmd: CmdPart) {
-    match Command::new(&cmd.cmd).args(cmd.args).status() {
-        Ok(_) => {}
-        Err(e) => {
-            println!("Failed to run command '{}' due to {}", &cmd.cmd, e)
-        }
     }
 }
