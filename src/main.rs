@@ -13,9 +13,16 @@ use rustyline::highlight::{MatchingBracketHighlighter};
 use crate::shell::rl_helper::RLHelper;
 
 use lalrpop_util::lalrpop_mod;
+use signal_hook::consts::SIGINT;
+use std::io::Error;
+use signal_hook::SigId;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 lalrpop_mod!(pub grammar);
 
 fn main() {
+    signal_handling();
+
     let config = Config::builder()
         .history_ignore_space(true)
         .completion_type(CompletionType::List)
@@ -41,5 +48,12 @@ fn main() {
             },
             Err(e) => println!("Failed to parse command: {}", e),
         }
+    }
+}
+
+fn signal_handling() {
+    match signal_hook::flag::register(SIGINT, Arc::new(AtomicBool::new(false))) {
+        Ok(_) => {},
+        Err(e) => {println!("failed to setup signal handling {}", e)}
     }
 }
