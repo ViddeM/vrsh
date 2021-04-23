@@ -1,26 +1,23 @@
-use rustyline_derive::{Helper};
-use rustyline::validate::Validator;
-use rustyline::error::ReadlineError;
-use rustyline::completion::{FilenameCompleter, Pair, Completer};
-use rustyline::hint::{HistoryHinter, Hinter};
-use rustyline::highlight::{MatchingBracketHighlighter, Highlighter};
-use rustyline::Context;
-use std::borrow::Cow;
-use std::borrow::Cow::{Owned, Borrowed};
 use crate::shell::colors;
-
+use rustyline::completion::{Completer, FilenameCompleter, Pair};
+use rustyline::error::ReadlineError;
+use rustyline::highlight::{Highlighter, MatchingBracketHighlighter};
+use rustyline::hint::{Hinter, HistoryHinter};
+use rustyline::validate::Validator;
+use rustyline::Context;
+use rustyline_derive::Helper;
+use std::borrow::Cow;
+use std::borrow::Cow::{Borrowed, Owned};
 
 #[derive(Helper)]
 pub struct RLHelper {
     pub completer: FilenameCompleter,
     pub hinter: HistoryHinter,
     pub highlighter: MatchingBracketHighlighter,
-    pub colored_prompt: String
+    pub colored_prompt: String,
 }
 
-impl Validator for RLHelper {
-
-}
+impl Validator for RLHelper {}
 
 impl Completer for RLHelper {
     type Candidate = Pair;

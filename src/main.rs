@@ -1,23 +1,22 @@
 use shell::handle_command::{handle_command, CommandStatus};
-use shell::parse_command::{parse_input};
+use shell::parse_command::parse_input;
 
 mod shell;
 
-use rustyline::{Editor, CompletionType, Config, EditMode, OutputStreamType};
-use std::borrow::{BorrowMut};
-use rustyline::completion::{FilenameCompleter};
-use rustyline::hint::{HistoryHinter};
-use rustyline::highlight::{MatchingBracketHighlighter};
 use crate::shell::rl_helper::RLHelper;
+use rustyline::completion::FilenameCompleter;
+use rustyline::highlight::MatchingBracketHighlighter;
+use rustyline::hint::HistoryHinter;
+use rustyline::{CompletionType, Config, EditMode, Editor, OutputStreamType};
+use std::borrow::BorrowMut;
 
+use crate::shell::parse_command::{get_home_dir, ParseError};
 use lalrpop_util::lalrpop_mod;
 use signal_hook::consts::SIGINT;
+use std::process::exit;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
-use crate::shell::parse_command::{ParseError, get_home_dir};
-use std::process::exit;
 lalrpop_mod!(pub grammar);
-
 
 fn main() {
     let home_dir = match get_home_dir() {
@@ -40,7 +39,7 @@ fn main() {
 
     let helper = RLHelper {
         completer: FilenameCompleter::new(),
-        hinter: HistoryHinter{},
+        hinter: HistoryHinter {},
         highlighter: MatchingBracketHighlighter::new(),
         colored_prompt: "".to_owned(),
     };
@@ -58,22 +57,27 @@ fn main() {
                 Ok(val) => match val {
                     CommandStatus::Ok => {}
                     CommandStatus::Exit => break,
-                }
-                Err(e) => println!("vrsh: {}", e)
+                },
+                Err(e) => println!("vrsh: {}", e),
             },
-            Err(ParseError::RLIgnore) => {},
+            Err(ParseError::RLIgnore) => {}
             Err(e) => println!("vrsh parse error: {}", e),
         }
         match rl.save_history(history_file.as_str()) {
             Ok(_) => {}
-            Err(e) => println!("vrsh: failed to save to history file '{}': {}", history_file, e)
+            Err(e) => println!(
+                "vrsh: failed to save to history file '{}': {}",
+                history_file, e
+            ),
         }
     }
 }
 
 fn signal_handling() {
     match signal_hook::flag::register(SIGINT, Arc::new(AtomicBool::new(false))) {
-        Ok(_) => {},
-        Err(e) => {println!("failed to setup signal handling {}", e)}
+        Ok(_) => {}
+        Err(e) => {
+            println!("failed to setup signal handling {}", e)
+        }
     }
 }

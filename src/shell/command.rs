@@ -1,6 +1,6 @@
 #[derive(Debug, Clone)]
 pub struct Cmd {
-    pub parts: Vec<CmdPart>
+    pub parts: Vec<CmdPart>,
 }
 
 #[derive(Debug, Clone)]
@@ -25,5 +25,5 @@ pub struct Arg {
 #[derive(Debug, Clone)]
 pub enum Redirect {
     In(String),
-    Out(String)
+    Out(String),
 }
