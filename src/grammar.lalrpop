@@ -1,8 +1,10 @@
-use crate::shell::command::{Cmd, CmdPart};
+use crate::shell::command::{Cmd, CmdPart, Arg, Redirect, CmdPartSection};
 
 grammar;
 
 match {
+    ">" => REDIRECT_OUT,
+    "<" => REDIRECT_IN,
     "|" => PIPE,
     r#"[^\s|"]+"# => WORD,
     r#""[^"]*""# => STRING,
@@ -15,13 +17,36 @@ pub Command: Cmd = {
 }
 
 Part: CmdPart = {
-    (Arg Arg*) => CmdPart {
-        cmd: <>.0,
-        args: <>.1,
+    <redirects: Redirect*> <cmd: Arg> <args: CmdPartSection*> => CmdPart {
+        cmd: cmd.word,
+        args: args.clone().into_iter().filter_map(|v| match v {
+                          CmdPartSection::Redirect(_) => None,
+                          CmdPartSection::Arg(arg) => Some(arg),
+                      }).collect(),
+        redirects: [redirects, args.into_iter().filter_map(|v| match v {
+            CmdPartSection::Redirect(r) => Some(r),
+            CmdPartSection::Arg(_) => None,
+        }).collect()].concat(),
     }
 }
 
-Arg: String = {
-    STRING => String::from(<>.strip_prefix('"').unwrap().strip_suffix('"').unwrap()),
-    WORD => String::from(<>),
+CmdPartSection: CmdPartSection = {
+    Arg => CmdPartSection::Arg(<>),
+    Redirect => CmdPartSection::Redirect(<>),
+}
+
+Arg: Arg = {
+    STRING => Arg{
+        word: String::from(<>.strip_prefix('"').unwrap().strip_suffix('"').unwrap()),
+        is_string: true,
+    },
+    WORD => Arg{
+        word: String::from(<>),
+        is_string: false,
+    }
+}
+
+Redirect: Redirect = {
+    REDIRECT_IN <f: WORD> => Redirect::In(String::from(f)),
+    REDIRECT_OUT <f: WORD> => Redirect::Out(String::from(f))
 }

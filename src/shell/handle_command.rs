@@ -1,40 +1,76 @@
-use crate::shell::command::{Cmd, CmdPart};
+use crate::shell::command::{Cmd, CmdPart, Arg, Redirect};
 use std::env::set_current_dir;
 use std::path::Path;
 use std::process::{Command, Child, Stdio};
+use std::fs::File;
+use std::fmt;
+use std::fmt::{Formatter, Display};
 
 pub enum CommandStatus {
     Ok,
     Exit,
 }
 
-// TODO: NEVER LOOK AT THIS CODE AGAIN, I THINK IT FUCKING WORKS!
-pub fn handle_command(command: Cmd) -> CommandStatus {
+pub enum CommandError {
+    IO(std::io::Error),
+}
+
+impl Display for CommandError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            CommandError::IO(e) => write!(f, "{}", e)
+        }
+    }
+}
+
+pub fn handle_command(command: Cmd) -> Result<CommandStatus, CommandError> {
     let mut all_prevs: Vec<Child> = Vec::new();
     let mut output = Some(Stdio::inherit());
     for (index, part) in command.parts.into_iter().enumerate().rev() {
         match part.cmd.as_str() {
-            "exit" => return CommandStatus::Exit,
+            "exit" => return Ok(CommandStatus::Exit),
             "cd" => handle_dir_change(part.args),
             _ => {
-                if let Some(mut c) = run_command(part,
-                                                 match output {
-                                                    Some(o) => {
-                                                        output = None;
-                                                        o
-                                                    },
-                                                    None => Stdio::piped()
-                                                 },
-                                                 if index == 0 { Stdio::inherit() }
-                                                 else { Stdio::piped() } ) {
+                let mut redirect_in: Option<String> = None;
+                let mut redirect_out: Option<String> = None;
+                for redirect in part.redirects.iter() {
+                    match redirect {
+                        Redirect::In(val) => {
+                            redirect_in = Some(val.clone())
+                        }
+                        Redirect::Out(val) => {
+                            redirect_out = Some(val.clone())
+                        }
+                    }
+                }
 
+                let cmd_out = if let Some(file) = redirect_out {
+                    create_redirect_file(file)?
+                } else {
+                    match output {
+                        None => Stdio::piped(),
+                        Some(v) => {
+                            output = None;
+                            v
+                        }
+                    }
+                };
+
+                let cmd_in = if let Some(file) = redirect_in {
+                    open_redirect_file(file)?
+                } else if index == 0 {
+                    Stdio::inherit()
+                } else {
+                    Stdio::piped()
+                };
+
+                if let Some(mut c) = run_command(part,cmd_out,cmd_in) {
                     output = Some(match c.stdin.take() {
                         Some(v) => Stdio::from(v),
                         None => Stdio::inherit()
                     });
 
                     all_prevs.push(c);
-
                 }
             },
         }
@@ -47,12 +83,30 @@ pub fn handle_command(command: Cmd) -> CommandStatus {
         }
     }
 
-    CommandStatus::Ok
+    Ok(CommandStatus::Ok)
+}
+
+fn create_redirect_file(file: String) -> Result<Stdio, CommandError> {
+    match File::create(file) {
+        Ok(val) => {
+            Ok(Stdio::from(val))
+        }
+        Err(e) => Err(CommandError::IO(e))
+    }
+}
+
+fn open_redirect_file(file: String) -> Result<Stdio, CommandError> {
+    match File::open(file) {
+        Ok(val) => {
+            Ok(Stdio::from(val))
+        }
+        Err(e) => Err(CommandError::IO(e))
+    }
 }
 
 fn run_command(part: CmdPart, output: Stdio, input: Stdio) -> Option<Child> {
     return match Command::new(&part.cmd)
-        .args(part.args)
+        .args(part.args.iter().map(|v| v.word.as_str()))
         .stdout(output)
         .stdin(input)
         .spawn() {
@@ -66,11 +120,11 @@ fn run_command(part: CmdPart, output: Stdio, input: Stdio) -> Option<Child> {
     }
 }
 
-fn handle_dir_change(args: Vec<String>) {
+fn handle_dir_change(args: Vec<Arg>) {
     match args.len() {
         0 => println!("must provide an argument"),
         1 => match args.first() {
-            Some(arg) => match set_current_dir(&Path::new(arg)) {
+            Some(arg) => match set_current_dir(&Path::new(arg.word.as_str())) {
 
                 Err(e) => println!("failed to change working dir {}", e),
                 _ => {}

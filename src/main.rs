@@ -14,8 +14,6 @@ use crate::shell::rl_helper::RLHelper;
 
 use lalrpop_util::lalrpop_mod;
 use signal_hook::consts::SIGINT;
-use std::io::Error;
-use signal_hook::SigId;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use crate::shell::parse_command::ParseError;
@@ -44,11 +42,14 @@ fn main() {
         let cmd = parse_input(rl.borrow_mut());
         match cmd {
             Ok(command) => match handle_command(command) {
-                CommandStatus::Ok => {}
-                CommandStatus::Exit => exit(0),
+                Ok(val) => match val {
+                    CommandStatus::Ok => {}
+                    CommandStatus::Exit => exit(0),
+                }
+                Err(e) => println!("vrsh: {}", e)
             },
             Err(ParseError::RLIgnore) => {},
-            Err(e) => println!("Failed to parse command: {}", e),
+            Err(e) => println!("vrsh parse error: {}", e),
         }
     }
 }
