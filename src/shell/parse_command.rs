@@ -104,7 +104,7 @@ fn get_prompt() -> Result<String, ParseError> {
     return Ok(prompt)
 }
 
-fn get_home_dir() -> Result<String, ParseError> {
+pub fn get_home_dir() -> Result<String, ParseError> {
     return match var_os("HOME") {
         Some(os_s) => {
             if os_s.is_empty() {

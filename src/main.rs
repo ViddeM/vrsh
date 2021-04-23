@@ -1,5 +1,3 @@
-use std::process::{exit};
-
 use shell::handle_command::{handle_command, CommandStatus};
 use shell::parse_command::{parse_input};
 
@@ -16,10 +14,21 @@ use lalrpop_util::lalrpop_mod;
 use signal_hook::consts::SIGINT;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
-use crate::shell::parse_command::ParseError;
+use crate::shell::parse_command::{ParseError, get_home_dir};
+use std::process::exit;
 lalrpop_mod!(pub grammar);
 
+
 fn main() {
+    let home_dir = match get_home_dir() {
+        Ok(v) => v,
+        Err(e) => {
+            println!("vrsh: unable to find home directory: {}", e);
+            exit(1);
+        }
+    };
+    let history_file = format!("{}/.vrsh_history", home_dir);
+
     signal_handling();
 
     let config = Config::builder()
@@ -38,13 +47,17 @@ fn main() {
     let mut rl = Editor::with_config(config);
     rl.set_helper(Some(helper));
 
+    match rl.load_history(history_file.as_str()) {
+        _ => {}
+    }
+
     loop {
         let cmd = parse_input(rl.borrow_mut());
         match cmd {
             Ok(command) => match handle_command(command) {
                 Ok(val) => match val {
                     CommandStatus::Ok => {}
-                    CommandStatus::Exit => exit(0),
+                    CommandStatus::Exit => break,
                 }
                 Err(e) => println!("vrsh: {}", e)
             },
@@ -52,6 +65,7 @@ fn main() {
             Err(e) => println!("vrsh parse error: {}", e),
         }
     }
+    rl.save_history(history_file.as_str()).unwrap()
 }
 
 fn signal_handling() {
