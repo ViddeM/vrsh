@@ -64,8 +64,11 @@ fn main() {
             Err(ParseError::RLIgnore) => {},
             Err(e) => println!("vrsh parse error: {}", e),
         }
+        match rl.save_history(history_file.as_str()) {
+            Ok(_) => {}
+            Err(e) => println!("vrsh: failed to save to history file '{}': {}", history_file, e)
+        }
     }
-    rl.save_history(history_file.as_str()).unwrap()
 }
 
 fn signal_handling() {
