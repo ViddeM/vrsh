@@ -6,7 +6,8 @@ use crate::shell::handle_command::CommandError::FailedToSpawnChild;
 use std::io::{Read};
 use crate::shell::built_ins::cd::handle_dir_change;
 use crate::shell::built_ins::alias::handle_alias;
-use crate::shell::common::types::{Redirect, Cmd, CmdPart, Arg};
+use crate::shell::common::types::{Redirect, Cmd, CmdPart};
+use crate::shell::built_ins::errors::BuiltInError;
 
 pub enum CommandStatus {
     Ok,
@@ -16,6 +17,7 @@ pub enum CommandStatus {
 pub enum CommandError {
     IO(std::io::Error),
     FailedToSpawnChild(String, std::io::Error),
+    BuiltInError(BuiltInError),
 }
 
 impl Display for CommandError {
@@ -23,8 +25,13 @@ impl Display for CommandError {
         match self {
             CommandError::IO(e) => write!(f, "{}", e),
             CommandError::FailedToSpawnChild(cmd, e) => write!(f, "failed to spawn process for command '{}': {}", cmd, e),
+            CommandError::BuiltInError(e) => write!(f, "{}", e),
         }
     }
+}
+
+impl From<BuiltInError> for CommandError {
+    fn from(err: BuiltInError) -> Self { CommandError::BuiltInError(err) }
 }
 
 pub fn handle_command(command: Cmd) -> Result<CommandStatus, CommandError> {
@@ -44,7 +51,10 @@ fn handle_command_with_output(command: Cmd, output: Stdio) -> Result<(CommandSta
                 Ok(_) => {}
                 Err(e) => println!("vrsh: {}", e)
             },
-            "alias" => handle_alias(part.args),
+            "alias" => match handle_alias(part.args) {
+                Ok(_) => {}
+                Err(e) => println!("vrsh: {}", e)
+            }
             _ => {
                 let mut redirect_in: Option<String> = None;
                 let mut redirect_out: Option<String> = None;
@@ -118,10 +128,7 @@ fn open_redirect_file(file: String) -> Result<Stdio, CommandError> {
 
 fn run_command(part: CmdPart, output: Stdio, input: Stdio) -> Result<Child, CommandError> {
     return match Command::new(&part.cmd)
-        .args(part.args.iter().map(|v| match v {
-            Arg::Word(s) => Ok(s.to_owned()),
-            Arg::String(s) => Ok(s.to_owned()),
-        }).collect::<Result<Vec<String>, CommandError>>()?)
+        .args(part.args.iter().map(|v| v.to_string()).collect::<Vec<String>>())
         .stdout(output)
         .stdin(input)
         .spawn()
