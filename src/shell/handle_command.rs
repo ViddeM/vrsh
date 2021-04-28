@@ -140,7 +140,7 @@ pub fn handle_sub_command(command: Cmd) -> Result<String, CommandError> {
                 let mut buffer = String::new();
                 match c.read_to_string(&mut buffer) {
                     Ok(_) => {
-                        Ok(buffer.replace("\n", ""))
+                        Ok(buffer.replace("\n", " "))
                     },
                     Err(_) => Ok("".to_string())
                 }
