@@ -1,6 +1,8 @@
 # vrsh
 A small shell written in rust as a way for me to learn rust
 
+Long term (most likely dream-like) goal, achieve POSIX compliance (https://pubs.opengroup.org/onlinepubs/009604499/utilities/xcu_chap02.html).
+
 # Current & planned features
 Currently only a small amount of features have been implemented but more are planned, feel free to suggest features to be added to the planned features list!
 
