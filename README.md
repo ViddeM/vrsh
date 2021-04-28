@@ -27,6 +27,7 @@ Currently only a small amount of features have been implemented but more are pla
  - [x] Built in commands:
    - [x] `cd`
    - [x] `exit`
+   - [ ] `alias`
  - [ ] Autocompletion
    - [x] For history, see above.
    - [x] File completion using `tab`.
