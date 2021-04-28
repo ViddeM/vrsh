@@ -1,4 +1,4 @@
-use crate::shell::common::types::{Cmd, CmdPart, Arg, Redirect, CmdPartSection};
+use crate::shell::common::types::{Cmd, CmdPart, Arg, Redirect, CmdPartSection, Assignment};
 
 grammar;
 
@@ -6,8 +6,9 @@ match {
     ">" => REDIRECT_OUT,
     "<" => REDIRECT_IN,
     "|" => PIPE,
+    "=" => EQUALS,
     r#""[^"]*""# => STRING,
-    r#"[^\s|"$()]+"# => WORD,
+    r#"[^\s|"$()=]+"# => WORD,
 }
 
 pub Command: Cmd = {
@@ -36,11 +37,19 @@ CmdPartSection: CmdPartSection = {
 }
 
 Arg: Arg = {
-    STRING => Arg::String(String::from(<>.strip_prefix('"').unwrap().strip_suffix('"').unwrap())),
-    WORD => Arg::Word(String::from(<>)),
+    <word: WORD> EQUALS <ass: Assignment> => Arg::Assignment(String::from(word), ass),
+    <ass: Assignment> => match ass {
+        Assignment::String(s) => Arg::String(s),
+        Assignment::Word(w) => Arg::Word(w),
+    }
 }
 
 Redirect: Redirect = {
     REDIRECT_IN <f: WORD> => Redirect::In(String::from(f)),
     REDIRECT_OUT <f: WORD> => Redirect::Out(String::from(f))
+}
+
+Assignment: Assignment = {
+    STRING => Assignment::String(String::from(<>.strip_prefix('"').unwrap().strip_suffix('"').unwrap())),
+    WORD => Assignment::Word(String::from(<>)),
 }

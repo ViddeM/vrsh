@@ -9,7 +9,7 @@ use std::io::Error;
 use crate::grammar::CommandParser;
 use crate::expansions::InitialCmdParser;
 use crate::shell::handle_command::{CommandError, handle_sub_command};
-use crate::shell::common::types::{Cmd, InitialCmd, InitialCmdPart, Redirect, CmdPart, Arg};
+use crate::shell::common::types::{Cmd, InitialCmd, InitialCmdPart, Redirect, CmdPart, Arg, Assignment};
 
 pub enum ParseError {
     IO(std::io::Error),
@@ -112,7 +112,6 @@ fn evaluate_cmd(cmd: String) -> Result<String, ParseError> {
 }
 
 fn replacements(cmd: Cmd) -> Result<Cmd, ParseError> {
-    let home_dir = get_home_dir()?;
     return Ok(Cmd {
         parts: match cmd
             .parts
@@ -123,8 +122,13 @@ fn replacements(cmd: Cmd) -> Result<Cmd, ParseError> {
                     .args
                     .into_iter()
                     .map(|a| match a {
-                        Arg::Word(s) => Ok(Arg::Word(s.replace(HOME, home_dir.as_str()))),
+                        Arg::Word(s) => Ok(Arg::Word(perform_replacement(s)?)),
                         Arg::String(_) => Ok(a),
+                        Arg::Assignment(word, ass) =>
+                            Ok(Arg::Assignment(perform_replacement(word)?, match ass {
+                                Assignment::Word(w) => Assignment::Word(perform_replacement(w)?),
+                                Assignment::String(s) => Assignment::String(s)
+                            }))
                     })
                     .collect::<Result<Vec<Arg>, ParseError>>() {
                     Ok(args) => args,
@@ -134,16 +138,25 @@ fn replacements(cmd: Cmd) -> Result<Cmd, ParseError> {
                     .redirects
                     .into_iter()
                     .map(|redirect| match redirect {
-                        Redirect::In(file) => Redirect::In(file.replace(HOME, home_dir.as_str())),
-                        Redirect::Out(file) => Redirect::Out(file.replace(HOME, home_dir.as_str())),
+                        Redirect::In(file) => {
+                            Ok(Redirect::In(perform_replacement(file)?))
+                        },
+                        Redirect::Out(file) => {
+                            Ok(Redirect::Out(perform_replacement(file)?))
+                        },
                     })
-                    .collect(),
+                    .collect::<Result<Vec<Redirect>, ParseError>>()?,
             }))
             .collect::<Result<Vec<CmdPart>, ParseError>>() {
             Ok(l) => l,
             Err(e) => return Err(e)
         }
     });
+}
+
+fn perform_replacement(str: String) -> Result<String, ParseError> {
+    let home_dir = get_home_dir()?;
+    Ok(str.replace(HOME, home_dir.as_str()))
 }
 
 fn get_prompt() -> Result<String, ParseError> {

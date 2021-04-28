@@ -1,3 +1,6 @@
+use std::fmt::Formatter;
+use std::fmt;
+
 #[derive(Debug, Clone)]
 pub struct Cmd {
     pub parts: Vec<CmdPart>,
@@ -20,6 +23,27 @@ pub enum CmdPartSection {
 pub enum Arg {
     Word(String),
     String(String),
+    Assignment(String, Assignment),
+}
+
+impl fmt::Display for Arg {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Arg::Word(w) => write!(f, "{}", w),
+            Arg::String(s) => write!(f, "{}", s),
+            Arg::Assignment(w, a) =>
+                write!(f, "{}={}", w, match a {
+                    Assignment::Word(wi) => wi,
+                    Assignment::String(si) => si,
+                })
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum Assignment {
+    Word(String),
+    String(String),
 }
 
 #[derive(Debug, Clone)]
@@ -27,7 +51,6 @@ pub enum Redirect {
     In(String),
     Out(String),
 }
-
 
 // Initial pass
 
