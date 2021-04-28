@@ -1,4 +1,3 @@
-use crate::shell::types::{Arg, Cmd, CmdPart, Redirect, InitialCmd, InitialCmdPart};
 use crate::shell::rl_helper::RLHelper;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
@@ -10,6 +9,7 @@ use std::io::Error;
 use crate::grammar::CommandParser;
 use crate::expansions::InitialCmdParser;
 use crate::shell::handle_command::{CommandError, handle_sub_command};
+use crate::shell::common::types::{Cmd, InitialCmd, InitialCmdPart, Redirect, CmdPart, Arg};
 
 pub enum ParseError {
     IO(std::io::Error),

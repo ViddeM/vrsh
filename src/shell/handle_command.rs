@@ -1,12 +1,12 @@
-use crate::shell::types::{Arg, Cmd, CmdPart, Redirect};
-use std::env::set_current_dir;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::fs::File;
-use std::path::Path;
 use std::process::{Child, Command, Stdio, ChildStdout};
 use crate::shell::handle_command::CommandError::FailedToSpawnChild;
 use std::io::{Read};
+use crate::shell::built_ins::cd::handle_dir_change;
+use crate::shell::built_ins::alias::handle_alias;
+use crate::shell::common::types::{Redirect, Cmd, CmdPart, Arg};
 
 pub enum CommandStatus {
     Ok,
@@ -44,6 +44,7 @@ fn handle_command_with_output(command: Cmd, output: Stdio) -> Result<(CommandSta
                 Ok(_) => {}
                 Err(e) => println!("vrsh: {}", e)
             },
+            "alias" => handle_alias(part.args),
             _ => {
                 let mut redirect_in: Option<String> = None;
                 let mut redirect_out: Option<String> = None;
@@ -150,39 +151,3 @@ pub fn handle_sub_command(command: Cmd) -> Result<String, CommandError> {
     }
 }
 
-enum DirChangeErr {
-    NoArgument,
-    FailedToExtractArg,
-    TooManyArguments(usize),
-    FailedToChangeDir(std::io::Error),
-    InvalidArgument
-}
-
-impl Display for DirChangeErr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            DirChangeErr::NoArgument => write!(f, "no argument provided"),
-            DirChangeErr::FailedToExtractArg => write!(f, "failed to extract argument"),
-            DirChangeErr::TooManyArguments(n) => write!(f, "too many arguments provided {}, expected 1", n),
-            DirChangeErr::FailedToChangeDir(e) => write!(f, "failed to change dir: {}", e),
-            DirChangeErr::InvalidArgument => write!(f, "invalid argument")
-        }
-    }
-}
-
-fn handle_dir_change(args: Vec<Arg>) -> Result<(), DirChangeErr> {
-    return match args.len() {
-        0 => Err(DirChangeErr::NoArgument),
-        1 => match args.first() {
-            Some(arg) => match set_current_dir(&Path::new(match arg {
-                Arg::Word(a) => a.as_str(),
-                _ => return Err(DirChangeErr::InvalidArgument)
-            })) {
-                Err(e) => Err(DirChangeErr::FailedToChangeDir(e)),
-                _ => Ok(())
-            },
-            None => Err(DirChangeErr::FailedToExtractArg),
-        },
-        num => Err(DirChangeErr::TooManyArguments(num)),
-    }
-}
