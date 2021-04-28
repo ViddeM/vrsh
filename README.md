@@ -43,3 +43,5 @@ Currently only a small amount of features have been implemented but more are pla
    - [ ] Be able to add aliases.
    - [ ] Configure color scheme.
    - [ ] Customize prompt
+ - [ ] Background processes `&`
+ - [ ] Sequentially executed commands `&&`
