@@ -14,9 +14,10 @@ Currently only a small amount of features have been implemented but more are pla
    - [ ] Highlight (valid) commands.
    - [ ] Highlight strings.
    - [ ] Matching calculations
- - [x] Expansions:
-   - [x] Command expansions using `$()`
-   - [ ] Look through 
+ - [x] Expansions (Look through https://www.gnu.org/software/bash/manual/html_node/Shell-Expansions.html for more):
+   - [x] Command expansions using `$()`.
+   - [ ] * -> any file matching. 
+   - [ ] More... see above url
  - [x] Aliases
    - [x] `~` -> the home directory of the current user.
  - [x] Piping between programs `|`.
