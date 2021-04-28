@@ -31,6 +31,12 @@ Currently only a small amount of features have been implemented but more are pla
    - [x] File completion using `tab`.
    - [ ] Expanded file completion by tabbing through them when several options are available.
    - [ ] Tab completion for commands in history.
+ - [ ] Prompt
+   - [x] Shows current path.
+   - [ ] Git integration.
+   - [ ] Show current user.
+   - [ ] Show result of last command.
+   - [ ] Prompt on right side as well.
  - [ ] Configuration using a file.
    - [ ] Be able to add aliases.
    - [ ] Configure color scheme.
