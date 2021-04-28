@@ -1,4 +1,4 @@
-use crate::shell::types::{Cmd, CmdPart, Arg, Redirect, CmdPartSection};
+use crate::shell::common::types::{Cmd, CmdPart, Arg, Redirect, CmdPartSection};
 
 grammar;
 

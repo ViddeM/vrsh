@@ -1,21 +1,22 @@
-use shell::handle_command::{handle_command, CommandStatus};
-use shell::parse_command::parse_input;
+use std::borrow::BorrowMut;
+use std::process::exit;
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
-mod shell;
-
-use crate::shell::rl_helper::RLHelper;
+use lalrpop_util::lalrpop_mod;
+use rustyline::{CompletionType, Config, EditMode, Editor, OutputStreamType};
 use rustyline::completion::FilenameCompleter;
 use rustyline::highlight::MatchingBracketHighlighter;
 use rustyline::hint::HistoryHinter;
-use rustyline::{CompletionType, Config, EditMode, Editor, OutputStreamType};
-use std::borrow::BorrowMut;
-
-use crate::shell::parse_command::{get_home_dir, ParseError};
-use lalrpop_util::lalrpop_mod;
 use signal_hook::consts::SIGINT;
-use std::process::exit;
-use std::sync::atomic::AtomicBool;
-use std::sync::Arc;
+
+use shell::handle_command::{CommandStatus, handle_command};
+use shell::parse_command::{get_home_dir, ParseError};
+use shell::parse_command::parse_input;
+use shell::rl_helper::RLHelper;
+
+mod shell;
+
 lalrpop_mod!(pub grammar);
 lalrpop_mod!(pub expansions);
 

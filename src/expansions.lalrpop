@@ -1,4 +1,4 @@
-use crate::shell::types::{InitialCmd, InitialCmdPart};
+use crate::shell::common::types::{InitialCmd, InitialCmdPart};
 
 grammar;
 
