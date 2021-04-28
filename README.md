@@ -15,7 +15,7 @@ Currently only a small amount of features have been implemented but more are pla
    - [x] Suggest previously used commands.
    - [ ] Highlight (valid) commands.
    - [ ] Highlight strings.
-   - [ ] Matching calculations
+   - [ ] Matching expansions
  - [x] Expansions (Look through https://www.gnu.org/software/bash/manual/html_node/Shell-Expansions.html for more):
    - [x] Command expansions using `$()`.
    - [ ] * -> any file matching. 
