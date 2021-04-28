@@ -1,10 +1,12 @@
-use crate::shell::command::{Arg, Cmd, CmdPart, Redirect};
+use crate::shell::types::{Arg, Cmd, CmdPart, Redirect};
 use std::env::set_current_dir;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::path::Path;
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, Command, Stdio, ChildStdout};
+use crate::shell::handle_command::CommandError::FailedToSpawnChild;
+use std::io::{Read};
 
 pub enum CommandStatus {
     Ok,
@@ -13,23 +15,35 @@ pub enum CommandStatus {
 
 pub enum CommandError {
     IO(std::io::Error),
+    FailedToSpawnChild(String, std::io::Error),
 }
 
 impl Display for CommandError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             CommandError::IO(e) => write!(f, "{}", e),
+            CommandError::FailedToSpawnChild(cmd, e) => write!(f, "failed to spawn process for command '{}': {}", cmd, e),
         }
     }
 }
 
 pub fn handle_command(command: Cmd) -> Result<CommandStatus, CommandError> {
+    match handle_command_with_output(command, Stdio::inherit()) {
+        Ok((status, _)) => Ok(status),
+        Err(e) => Err(e)
+    }
+}
+
+fn handle_command_with_output(command: Cmd, output: Stdio) -> Result<(CommandStatus, Option<ChildStdout>), CommandError> {
     let mut all_prevs: Vec<Child> = Vec::new();
-    let mut output = Some(Stdio::inherit());
+    let mut output = Some(output);
     for (index, part) in command.parts.into_iter().enumerate().rev() {
         match part.cmd.as_str() {
-            "exit" => return Ok(CommandStatus::Exit),
-            "cd" => handle_dir_change(part.args),
+            "exit" => return Ok((CommandStatus::Exit, None)),
+            "cd" => match handle_dir_change(part.args) {
+                Ok(_) => {}
+                Err(e) => println!("vrsh: {}", e)
+            },
             _ => {
                 let mut redirect_in: Option<String> = None;
                 let mut redirect_out: Option<String> = None;
@@ -45,10 +59,7 @@ pub fn handle_command(command: Cmd) -> Result<CommandStatus, CommandError> {
                 } else {
                     match output {
                         None => Stdio::piped(),
-                        Some(v) => {
-                            output = None;
-                            v
-                        }
+                        Some(out) => out
                     }
                 };
 
@@ -60,26 +71,34 @@ pub fn handle_command(command: Cmd) -> Result<CommandStatus, CommandError> {
                     Stdio::piped()
                 };
 
-                if let Some(mut c) = run_command(part, cmd_out, cmd_in) {
-                    output = Some(match c.stdin.take() {
-                        Some(v) => Stdio::from(v),
-                        None => Stdio::inherit(),
-                    });
+                match run_command(part, cmd_out, cmd_in) {
+                    Ok(mut c) => {
+                        output = Some(match c.stdin.take() {
+                            Some(v) => Stdio::from(v),
+                            None => Stdio::inherit(),
+                        });
 
-                    all_prevs.push(c);
+                        all_prevs.push(c);
+                    }
+                    Err(e) => return Err(e)
                 }
             }
         }
     }
 
-    for mut child in all_prevs.into_iter() {
+    let mut res = None;
+    for (index, mut child) in all_prevs.into_iter().enumerate() {
+        if index == 0 {
+            res = child.stdout.take()
+        }
+
         match child.wait() {
             Ok(_) => {}
             Err(e) => println!("Failed to wait for child {}", e),
         }
     }
 
-    Ok(CommandStatus::Ok)
+    Ok((CommandStatus::Ok, res))
 }
 
 fn create_redirect_file(file: String) -> Result<Stdio, CommandError> {
@@ -96,31 +115,74 @@ fn open_redirect_file(file: String) -> Result<Stdio, CommandError> {
     }
 }
 
-fn run_command(part: CmdPart, output: Stdio, input: Stdio) -> Option<Child> {
+fn run_command(part: CmdPart, output: Stdio, input: Stdio) -> Result<Child, CommandError> {
     return match Command::new(&part.cmd)
-        .args(part.args.iter().map(|v| v.word.as_str()))
+        .args(part.args.iter().map(|v| match v {
+            Arg::Word(s) => Ok(s.to_owned()),
+            Arg::String(s) => Ok(s.to_owned()),
+        }).collect::<Result<Vec<String>, CommandError>>()?)
         .stdout(output)
         .stdin(input)
         .spawn()
     {
-        Ok(c) => Some(c),
+        Ok(c) => Ok(c),
         Err(e) => {
-            println!("Failed to spawn process {}", e);
-            None
+            Err(FailedToSpawnChild(part.cmd, e))
         }
     };
 }
 
-fn handle_dir_change(args: Vec<Arg>) {
-    match args.len() {
-        0 => println!("must provide an argument"),
+pub fn handle_sub_command(command: Cmd) -> Result<String, CommandError> {
+    match handle_command_with_output(command, Stdio::piped()) {
+        Ok((_, child)) => match child {
+            None => Ok("".to_string()),
+            Some(mut c) => {
+                let mut buffer = String::new();
+                match c.read_to_string(&mut buffer) {
+                    Ok(_) => {
+                        Ok(buffer.replace("\n", ""))
+                    },
+                    Err(_) => Ok("".to_string())
+                }
+            }
+        }
+        Err(e) => Err(e)
+    }
+}
+
+enum DirChangeErr {
+    NoArgument,
+    FailedToExtractArg,
+    TooManyArguments(usize),
+    FailedToChangeDir(std::io::Error),
+    InvalidArgument
+}
+
+impl Display for DirChangeErr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            DirChangeErr::NoArgument => write!(f, "no argument provided"),
+            DirChangeErr::FailedToExtractArg => write!(f, "failed to extract argument"),
+            DirChangeErr::TooManyArguments(n) => write!(f, "too many arguments provided {}, expected 1", n),
+            DirChangeErr::FailedToChangeDir(e) => write!(f, "failed to change dir: {}", e),
+            DirChangeErr::InvalidArgument => write!(f, "invalid argument")
+        }
+    }
+}
+
+fn handle_dir_change(args: Vec<Arg>) -> Result<(), DirChangeErr> {
+    return match args.len() {
+        0 => Err(DirChangeErr::NoArgument),
         1 => match args.first() {
-            Some(arg) => match set_current_dir(&Path::new(arg.word.as_str())) {
-                Err(e) => println!("failed to change working dir {}", e),
-                _ => {}
+            Some(arg) => match set_current_dir(&Path::new(match arg {
+                Arg::Word(a) => a.as_str(),
+                _ => return Err(DirChangeErr::InvalidArgument)
+            })) {
+                Err(e) => Err(DirChangeErr::FailedToChangeDir(e)),
+                _ => Ok(())
             },
-            None => println!("failed to handle args"),
+            None => Err(DirChangeErr::FailedToExtractArg),
         },
-        num => println!("invalid amount of arguments to cd: {}", num),
+        num => Err(DirChangeErr::TooManyArguments(num)),
     }
 }

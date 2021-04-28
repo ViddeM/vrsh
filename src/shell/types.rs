@@ -17,9 +17,9 @@ pub enum CmdPartSection {
 }
 
 #[derive(Debug, Clone)]
-pub struct Arg {
-    pub word: String,
-    pub is_string: bool,
+pub enum Arg {
+    Word(String),
+    String(String),
 }
 
 #[derive(Debug, Clone)]
@@ -27,3 +27,19 @@ pub enum Redirect {
     In(String),
     Out(String),
 }
+
+
+// Initial pass
+
+#[derive(Debug, Clone)]
+pub struct InitialCmd {
+    pub text: String,
+    pub parts: Vec<InitialCmdPart>
+}
+
+#[derive(Debug, Clone)]
+pub enum InitialCmdPart {
+    String(String),
+    Calculation(InitialCmd)
+}
+

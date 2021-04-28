@@ -1,0 +1,21 @@
+use crate::shell::types::{InitialCmd, InitialCmdPart};
+
+grammar;
+
+match {
+    "$(" => CALCULATION_BEGINNING,
+    ")" => CALCULATION_END,
+    r#"[^$()]+"# => TEXT,
+}
+
+pub InitialCmd: InitialCmd = {
+    <text: TEXT> <parts: InitialCmdPart*> => InitialCmd {
+        text: String::from(text),
+        parts,
+    }
+}
+
+InitialCmdPart: InitialCmdPart = {
+    CALCULATION_BEGINNING <cmd: InitialCmd> CALCULATION_END => InitialCmdPart::Calculation(cmd),
+    <text: TEXT> => InitialCmdPart::String(String::from(text))
+}

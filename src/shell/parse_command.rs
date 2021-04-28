@@ -1,4 +1,4 @@
-use crate::shell::command::{Arg, Cmd, CmdPart, Redirect};
+use crate::shell::types::{Arg, Cmd, CmdPart, Redirect, InitialCmd, InitialCmdPart};
 use crate::shell::rl_helper::RLHelper;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
@@ -8,6 +8,8 @@ use std::fmt::{Display, Formatter};
 use std::io::Error;
 
 use crate::grammar::CommandParser;
+use crate::expansions::InitialCmdParser;
+use crate::shell::handle_command::{CommandError, handle_sub_command};
 
 pub enum ParseError {
     IO(std::io::Error),
@@ -17,6 +19,7 @@ pub enum ParseError {
     RLError(ReadlineError),
     RLIgnore,
     LALRPopErr(String),
+    EvaluationError(CommandError)
 }
 
 impl Display for ParseError {
@@ -29,6 +32,7 @@ impl Display for ParseError {
             ParseError::RLError(e) => write!(f, "readline encountered an error: {}", e),
             ParseError::LALRPopErr(s) => write!(f, "failed parsing: {}", s),
             ParseError::RLIgnore => write!(f, "ignored error"),
+            ParseError::EvaluationError(cmd_err) => write!(f, "failed to evaluate command: {}", cmd_err)
         }
     }
 }
@@ -45,7 +49,10 @@ impl From<ReadlineError> for ParseError {
     }
 }
 
-// TODO: extend grammar so that we can replace all ~ to /home/user automatically.
+impl From<CommandError> for ParseError {
+    fn from (cmd_err: CommandError) -> Self { ParseError::EvaluationError(cmd_err) }
+}
+
 const HOME: &str = "~";
 
 pub fn parse_input(rl: &mut Editor<RLHelper>) -> Result<Cmd, ParseError> {
@@ -62,7 +69,14 @@ pub fn parse_input(rl: &mut Editor<RLHelper>) -> Result<Cmd, ParseError> {
         }
     };
 
-    let command: Cmd = match CommandParser::new().parse(&s) {
+    let initial_cmd: InitialCmd = match InitialCmdParser::new().parse(&s) {
+        Ok(val) => val,
+        Err(e) => return Err(ParseError::LALRPopErr(e.to_string())),
+    };
+
+    let expanded = expand_initial_cmd(initial_cmd)?;
+
+    let command: Cmd = match CommandParser::new().parse(&expanded) {
         Ok(val) => val,
         Err(e) => return Err(ParseError::LALRPopErr(e.to_string())),
     };
@@ -71,25 +85,51 @@ pub fn parse_input(rl: &mut Editor<RLHelper>) -> Result<Cmd, ParseError> {
     return replacements(command);
 }
 
+fn expand_initial_cmd(cmd: InitialCmd) -> Result<String, ParseError> {
+    let mut text = cmd.text;
+    for part in cmd.parts.into_iter() {
+        match part {
+            InitialCmdPart::String(val) => {
+                text = text + val.as_str();
+            }
+            InitialCmdPart::Calculation(cmd) => {
+                let inner = expand_initial_cmd(cmd)?;
+                text += evaluate_cmd(inner)?.as_str();
+            }
+        }
+    }
+
+    Ok(text)
+}
+
+fn evaluate_cmd(cmd: String) -> Result<String, ParseError> {
+    let parsed: Cmd = match CommandParser::new().parse(&cmd) {
+        Ok(val) => replacements(val)?,
+        Err(e) => return Err(ParseError::LALRPopErr(e.to_string())),
+    };
+
+    Ok(handle_sub_command(parsed)?)
+}
+
 fn replacements(cmd: Cmd) -> Result<Cmd, ParseError> {
     let home_dir = get_home_dir()?;
     return Ok(Cmd {
-        parts: cmd
+        parts: match cmd
             .parts
             .into_iter()
-            .map(|v| CmdPart {
+            .map(|v| Ok(CmdPart {
                 cmd: v.cmd,
-                args: v
+                args: match v
                     .args
                     .into_iter()
-                    .map(|a| match a.is_string {
-                        true => a,
-                        false => Arg {
-                            word: a.word.replace(HOME, home_dir.as_str()),
-                            is_string: false,
-                        },
+                    .map(|a| match a {
+                        Arg::Word(s) => Ok(Arg::Word(s.replace(HOME, home_dir.as_str()))),
+                        Arg::String(_) => Ok(a),
                     })
-                    .collect(),
+                    .collect::<Result<Vec<Arg>, ParseError>>() {
+                    Ok(args) => args,
+                    Err(e) => return Err(e),
+                },
                 redirects: v
                     .redirects
                     .into_iter()
@@ -98,8 +138,11 @@ fn replacements(cmd: Cmd) -> Result<Cmd, ParseError> {
                         Redirect::Out(file) => Redirect::Out(file.replace(HOME, home_dir.as_str())),
                     })
                     .collect(),
-            })
-            .collect(),
+            }))
+            .collect::<Result<Vec<CmdPart>, ParseError>>() {
+            Ok(l) => l,
+            Err(e) => return Err(e)
+        }
     });
 }
 

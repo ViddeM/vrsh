@@ -17,6 +17,7 @@ use std::process::exit;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 lalrpop_mod!(pub grammar);
+lalrpop_mod!(pub expansions);
 
 fn main() {
     let home_dir = match get_home_dir() {
