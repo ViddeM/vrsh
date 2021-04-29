@@ -14,12 +14,12 @@ Currently only a small amount of features have been implemented but more are pla
  - [x] Command history:
    - [x] Persistant (stored in history file in users home directory).
    - [x] Can reuse commands by using `arrow-up` to go back in history and `arrow-down` to go forward in history.
- - [x] Some basic highlighting:
+ - [ ] Some basic highlighting:
    - [x] Suggest previously used commands.
    - [ ] Highlight (valid) commands.
    - [ ] Highlight strings.
    - [ ] Matching expansions
- - [x] Expansions (Look through https://www.gnu.org/software/bash/manual/html_node/Shell-Expansions.html for more):
+ - [ ] Expansions (Look through https://www.gnu.org/software/bash/manual/html_node/Shell-Expansions.html for more):
    - [x] Command expansions using `$()`.
    - [ ] * -> any file matching. 
    - [ ] More... see above url
@@ -29,10 +29,11 @@ Currently only a small amount of features have been implemented but more are pla
  - [x] Redirects:
    - [x] From command output to file (`>`).
    - [x] To program from file (`<`).
- - [x] Built in commands:
+ - [ ] Built in commands:
    - [x] `cd`
    - [x] `exit`
    - [x] `alias`
+   - [ ] `source`
  - [ ] Autocompletion
    - [x] For history, see above.
    - [x] File completion using `tab`.
