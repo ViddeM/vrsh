@@ -1,9 +1,8 @@
-use crate::shell::common::types::Arg;
+use crate::shell::common::types::{Arg, Assignment};
 use crate::shell::built_ins::errors::BuiltInError;
+use crate::shell::common::state::State;
 
-pub fn handle_alias(args: Vec<Arg>) -> Result<String, BuiltInError> {
-    println!("Received args: {:?}", args);
-
+pub fn handle_alias(args: Vec<Arg>, state: &mut State) -> Result<(), BuiltInError> {
     match args.len() {
         0 => return Err(BuiltInError::NoArgument),
         1 => {},
@@ -11,12 +10,15 @@ pub fn handle_alias(args: Vec<Arg>) -> Result<String, BuiltInError> {
     }
 
     let arg = args[0].to_owned();
+    match arg {
+        Arg::Assignment(w, a) => {
+            state.aliases.insert(w, match a {
+                Assignment::Word(w) => w,
+                Assignment::String(s) => s
+            });
+        }
+        _ => return Err(BuiltInError::InvalidArgument)
+    }
 
-    println!("{:?}", arg);
-    // match arg {
-    //     Arg::Word(_) => Err()
-    //     Arg::String(_) => {}
-    // }
-
-    Ok("".to_string())
+    Ok(())
 }

@@ -8,6 +8,7 @@ use crate::shell::built_ins::cd::handle_dir_change;
 use crate::shell::built_ins::alias::handle_alias;
 use crate::shell::common::types::{Redirect, Cmd, CmdPart};
 use crate::shell::built_ins::errors::BuiltInError;
+use crate::shell::common::state::State;
 
 pub enum CommandStatus {
     Ok,
@@ -34,14 +35,14 @@ impl From<BuiltInError> for CommandError {
     fn from(err: BuiltInError) -> Self { CommandError::BuiltInError(err) }
 }
 
-pub fn handle_command(command: Cmd) -> Result<CommandStatus, CommandError> {
-    match handle_command_with_output(command, Stdio::inherit()) {
+pub fn handle_command(command: Cmd, state: &mut State) -> Result<CommandStatus, CommandError> {
+    match handle_command_with_output(command, Stdio::inherit(), state) {
         Ok((status, _)) => Ok(status),
         Err(e) => Err(e)
     }
 }
 
-fn handle_command_with_output(command: Cmd, output: Stdio) -> Result<(CommandStatus, Option<ChildStdout>), CommandError> {
+fn handle_command_with_output(command: Cmd, output: Stdio, state: &mut State) -> Result<(CommandStatus, Option<ChildStdout>), CommandError> {
     let mut all_prevs: Vec<Child> = Vec::new();
     let mut output = Some(output);
     for (index, part) in command.parts.into_iter().enumerate().rev() {
@@ -51,7 +52,7 @@ fn handle_command_with_output(command: Cmd, output: Stdio) -> Result<(CommandSta
                 Ok(_) => {}
                 Err(e) => println!("vrsh: {}", e)
             },
-            "alias" => match handle_alias(part.args) {
+            "alias" => match handle_alias(part.args, state) {
                 Ok(_) => {}
                 Err(e) => println!("vrsh: {}", e)
             }
@@ -140,8 +141,8 @@ fn run_command(part: CmdPart, output: Stdio, input: Stdio) -> Result<Child, Comm
     };
 }
 
-pub fn handle_sub_command(command: Cmd) -> Result<String, CommandError> {
-    match handle_command_with_output(command, Stdio::piped()) {
+pub fn handle_sub_command(command: Cmd, state: &mut State) -> Result<String, CommandError> {
+    match handle_command_with_output(command, Stdio::piped(), state) {
         Ok((_, child)) => match child {
             None => Ok("".to_string()),
             Some(mut c) => {

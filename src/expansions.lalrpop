@@ -17,5 +17,5 @@ pub InitialCmd: InitialCmd = {
 
 InitialCmdPart: InitialCmdPart = {
     CALCULATION_BEGINNING <cmd: InitialCmd> CALCULATION_END => InitialCmdPart::Calculation(cmd),
-    <text: TEXT> => InitialCmdPart::String(String::from(text))
+    <text: TEXT> => InitialCmdPart::String(String::from(text)),
 }

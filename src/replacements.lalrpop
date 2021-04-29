@@ -1,0 +1,19 @@
+use crate::shell::common::types::{ReplacementsCmd, ReplacementPart};
+
+grammar;
+
+match {
+    r#""[^"]*""# => STRING,
+    r#"[^"]*"# => WORD,
+}
+
+pub ReplacementCmd: ReplacementsCmd = {
+    ReplacementPart+ => ReplacementsCmd {
+        parts: <>,
+    }
+}
+
+ReplacementPart: ReplacementPart = {
+    STRING => ReplacementPart::String(String::from(<>)),
+    WORD => ReplacementPart::Word(String::from(<>)),
+}
