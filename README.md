@@ -8,6 +8,9 @@ Currently only a small amount of features have been implemented but more are pla
 
 ## Current & planned features list:
  - [x] Execution of programs with given arguments.
+ - [ ] Support single quotes `'`
+ - [ ] Arguments without spaces should be one argument e.g. `"asd""bsd"` should be one argument.
+ - [ ] Support environment variables e.g. `$HOME`
  - [x] Command history:
    - [x] Persistant (stored in history file in users home directory).
    - [x] Can reuse commands by using `arrow-up` to go back in history and `arrow-down` to go forward in history.
