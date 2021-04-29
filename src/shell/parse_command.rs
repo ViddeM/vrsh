@@ -18,7 +18,7 @@ pub enum ParseError {
     NoWorkingDir,
     RLError(ReadlineError),
     RLIgnore,
-    LALRPopErr(String),
+    LALRPopErr(String, String),
     EvaluationError(CommandError)
 }
 
@@ -28,7 +28,7 @@ impl Display for ParseError {
             ParseError::IO(e) => write!(f, "io error: '{}'", e),
             ParseError::NoWorkingDir => write!(f, "failed to retrieve current working directory"),
             ParseError::RLError(e) => write!(f, "readline encountered an error: {}", e),
-            ParseError::LALRPopErr(s) => write!(f, "failed parsing: {}", s),
+            ParseError::LALRPopErr(s, pass) => write!(f, "failed parsing: {} in pass {}", s, pass),
             ParseError::RLIgnore => write!(f, "ignored error"),
             ParseError::EvaluationError(cmd_err) => write!(f, "failed to evaluate command: {}", cmd_err)
         }
@@ -69,7 +69,7 @@ pub fn parse_input(rl: &mut Editor<RLHelper>, state: &mut State) -> Result<Cmd, 
 
     let initial_cmd: InitialCmd = match InitialCmdParser::new().parse(&s) {
         Ok(val) => val,
-        Err(e) => return Err(ParseError::LALRPopErr(e.to_string())),
+        Err(e) => return Err(ParseError::LALRPopErr(e.to_string(), String::from("initial"))),
     };
     let expanded = expand_initial_cmd(initial_cmd, state)?;
 
@@ -102,14 +102,14 @@ fn evaluate_cmd(cmd: String, state: &mut State) -> Result<Cmd, ParseError> {
 
     match CommandParser::new().parse(&replaced) {
         Ok(val) => Ok(val),
-        Err(e) => Err(ParseError::LALRPopErr(e.to_string())),
+        Err(e) => Err(ParseError::LALRPopErr(e.to_string(), String::from("command"))),
     }
 }
 
 fn perform_replacements(str: String, state: &State) -> Result<String, ParseError> {
     let replaced_cmd: ReplacementsCmd = match ReplacementCmdParser::new().parse(&str) {
         Ok(val) => val,
-        Err(e) => return Err(ParseError::LALRPopErr(e.to_string())),
+        Err(e) => return Err(ParseError::LALRPopErr(e.to_string(), String::from("replacements"))),
     };
     Ok(handle_replaced_cmd(replaced_cmd, state))
 }

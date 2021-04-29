@@ -3,8 +3,9 @@ use crate::shell::common::types::{ReplacementsCmd, ReplacementPart};
 grammar;
 
 match {
-    r#""[^"]*""# => STRING,
-    r#"[^"]*"# => WORD,
+    r#""[^#"]*""# => STRING,
+    r#"[^#"]*"# => WORD,
+    r#"#[^#\n\r]*[\n\r]*"# => {}, // Comment
 }
 
 pub ReplacementCmd: ReplacementsCmd = {

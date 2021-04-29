@@ -3,9 +3,11 @@ use crate::shell::common::types::{InitialCmd, InitialCmdPart};
 grammar;
 
 match {
+    "#" => COMMENT,
     "$(" => CALCULATION_BEGINNING,
     ")" => CALCULATION_END,
-    r#"[^$()]+"# => TEXT,
+    r#"[^$()#]+"# => TEXT,
+    r#"#[^#\n\r]*[\n\r]*"# => {}, // Comment
 }
 
 pub InitialCmd: InitialCmd = {

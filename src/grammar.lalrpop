@@ -7,8 +7,10 @@ match {
     "<" => REDIRECT_IN,
     "|" => PIPE,
     "=" => EQUALS,
-    r#""[^"]*""# => STRING,
-    r#"[^\s|"$()=]+"# => WORD,
+    r#""[^#"]*""# => STRING,
+    r#"[^\s|"$()=#]+"# => WORD,
+    r#"\s*"# => {},
+    r#"#[^\n\r]*[\n\r]*"# => {}, // Comment
 }
 
 pub Command: Cmd = {
