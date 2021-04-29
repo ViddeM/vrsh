@@ -11,7 +11,7 @@ Currently only a small amount of features have been implemented but more are pla
  - [ ] Support single quotes `'`
  - [ ] Arguments without spaces should be one argument e.g. `"asd""bsd"` should be one argument.
  - [ ] Support environment variables e.g. `$HOME`
- - [ ] Support comments `#`
+ - [x] Support comments `#`
  - [x] Command history:
    - [x] Persistant (stored in history file in users home directory).
    - [x] Can reuse commands by using `arrow-up` to go back in history and `arrow-down` to go forward in history.
