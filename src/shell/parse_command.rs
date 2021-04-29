@@ -1,21 +1,21 @@
 use crate::shell::rl_helper::RLHelper;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
-use std::env::{current_dir, var_os};
+use std::env::{current_dir};
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::io::Error;
 
 use crate::grammar::CommandParser;
 use crate::expansions::InitialCmdParser;
+use crate::replacements::ReplacementCmdParser;
 use crate::shell::handle_command::{CommandError, handle_sub_command};
-use crate::shell::common::types::{Cmd, InitialCmd, InitialCmdPart, Redirect, CmdPart, Arg, Assignment};
+use crate::shell::common::types::{Cmd, InitialCmd, InitialCmdPart, ReplacementsCmd, ReplacementPart};
+use crate::shell::common::state::{State};
 
 pub enum ParseError {
     IO(std::io::Error),
     NoWorkingDir,
-    NoHomeVar,
-    Internal,
     RLError(ReadlineError),
     RLIgnore,
     LALRPopErr(String),
@@ -27,8 +27,6 @@ impl Display for ParseError {
         match self {
             ParseError::IO(e) => write!(f, "io error: '{}'", e),
             ParseError::NoWorkingDir => write!(f, "failed to retrieve current working directory"),
-            ParseError::NoHomeVar => write!(f, "environment variable HOME not set or set to empty"),
-            ParseError::Internal => write!(f, "something went wrong"),
             ParseError::RLError(e) => write!(f, "readline encountered an error: {}", e),
             ParseError::LALRPopErr(s) => write!(f, "failed parsing: {}", s),
             ParseError::RLIgnore => write!(f, "ignored error"),
@@ -55,8 +53,8 @@ impl From<CommandError> for ParseError {
 
 const HOME: &str = "~";
 
-pub fn parse_input(rl: &mut Editor<RLHelper>) -> Result<Cmd, ParseError> {
-    let prompt_prefix = get_prompt()?;
+pub fn parse_input(rl: &mut Editor<RLHelper>, state: &mut State) -> Result<Cmd, ParseError> {
+    let prompt_prefix = get_prompt(state)?;
     let prompt = format!("{} > ", prompt_prefix);
 
     let s = match rl.readline(prompt.as_str()) {
@@ -73,19 +71,15 @@ pub fn parse_input(rl: &mut Editor<RLHelper>) -> Result<Cmd, ParseError> {
         Ok(val) => val,
         Err(e) => return Err(ParseError::LALRPopErr(e.to_string())),
     };
+    let expanded = expand_initial_cmd(initial_cmd, state)?;
 
-    let expanded = expand_initial_cmd(initial_cmd)?;
-
-    let command: Cmd = match CommandParser::new().parse(&expanded) {
-        Ok(val) => val,
-        Err(e) => return Err(ParseError::LALRPopErr(e.to_string())),
-    };
+    let command = evaluate_cmd(expanded, state)?;
 
     rl.add_history_entry(s);
-    return replacements(command);
+    return Ok(command);
 }
 
-fn expand_initial_cmd(cmd: InitialCmd) -> Result<String, ParseError> {
+fn expand_initial_cmd(cmd: InitialCmd, state: &mut State) -> Result<String, ParseError> {
     let mut text = cmd.text;
     for part in cmd.parts.into_iter() {
         match part {
@@ -93,8 +87,9 @@ fn expand_initial_cmd(cmd: InitialCmd) -> Result<String, ParseError> {
                 text = text + val.as_str();
             }
             InitialCmdPart::Calculation(cmd) => {
-                let inner = expand_initial_cmd(cmd)?;
-                text += evaluate_cmd(inner)?.as_str();
+                let inner = expand_initial_cmd(cmd, state)?;
+                let new_cmd = evaluate_cmd(inner, state)?;
+                text += handle_sub_command(new_cmd, state)?.as_str();
             }
         }
     }
@@ -102,87 +97,51 @@ fn expand_initial_cmd(cmd: InitialCmd) -> Result<String, ParseError> {
     Ok(text)
 }
 
-fn evaluate_cmd(cmd: String) -> Result<String, ParseError> {
-    let parsed: Cmd = match CommandParser::new().parse(&cmd) {
-        Ok(val) => replacements(val)?,
+fn evaluate_cmd(cmd: String, state: &mut State) -> Result<Cmd, ParseError> {
+    let replaced = perform_replacements(cmd, state)?;
+
+    match CommandParser::new().parse(&replaced) {
+        Ok(val) => Ok(val),
+        Err(e) => Err(ParseError::LALRPopErr(e.to_string())),
+    }
+}
+
+fn perform_replacements(str: String, state: &State) -> Result<String, ParseError> {
+    let replaced_cmd: ReplacementsCmd = match ReplacementCmdParser::new().parse(&str) {
+        Ok(val) => val,
         Err(e) => return Err(ParseError::LALRPopErr(e.to_string())),
     };
-
-    Ok(handle_sub_command(parsed)?)
+    Ok(handle_replaced_cmd(replaced_cmd, state))
 }
 
-fn replacements(cmd: Cmd) -> Result<Cmd, ParseError> {
-    return Ok(Cmd {
-        parts: match cmd
-            .parts
-            .into_iter()
-            .map(|v| Ok(CmdPart {
-                cmd: v.cmd,
-                args: match v
-                    .args
-                    .into_iter()
-                    .map(|a| match a {
-                        Arg::Word(s) => Ok(Arg::Word(perform_replacement(s)?)),
-                        Arg::String(_) => Ok(a),
-                        Arg::Assignment(word, ass) =>
-                            Ok(Arg::Assignment(perform_replacement(word)?, match ass {
-                                Assignment::Word(w) => Assignment::Word(perform_replacement(w)?),
-                                Assignment::String(s) => Assignment::String(s)
-                            }))
-                    })
-                    .collect::<Result<Vec<Arg>, ParseError>>() {
-                    Ok(args) => args,
-                    Err(e) => return Err(e),
-                },
-                redirects: v
-                    .redirects
-                    .into_iter()
-                    .map(|redirect| match redirect {
-                        Redirect::In(file) => {
-                            Ok(Redirect::In(perform_replacement(file)?))
-                        },
-                        Redirect::Out(file) => {
-                            Ok(Redirect::Out(perform_replacement(file)?))
-                        },
-                    })
-                    .collect::<Result<Vec<Redirect>, ParseError>>()?,
-            }))
-            .collect::<Result<Vec<CmdPart>, ParseError>>() {
-            Ok(l) => l,
-            Err(e) => return Err(e)
-        }
-    });
+fn handle_replaced_cmd(replacement_cmd: ReplacementsCmd, state: &State) -> String {
+    let mut replaced_str = String::new();
+    for part in replacement_cmd.parts.iter() {
+        let val = match part {
+            ReplacementPart::String(s) => s.to_owned(),
+            ReplacementPart::Word(w) => perform_replacement(w.to_string(), state)
+        };
+        replaced_str = replaced_str + &val;
+    }
+    replaced_str
 }
 
-fn perform_replacement(str: String) -> Result<String, ParseError> {
-    let home_dir = get_home_dir()?;
-    Ok(str.replace(HOME, home_dir.as_str()))
+fn perform_replacement(str: String, state: &State) -> String {
+    let mut replaced = str.clone();
+    for (key, val) in state.aliases.iter() {
+        replaced = replaced.replace(key, val);
+    }
+    replaced.replace(HOME, state.home.as_str())
 }
 
-fn get_prompt() -> Result<String, ParseError> {
+fn get_prompt(state: &State) -> Result<String, ParseError> {
     let curr_dir = current_dir()?;
     let wd = match curr_dir.to_str() {
         Some(dir) => dir,
         None => return Err(ParseError::NoWorkingDir),
     };
 
-    let home_dir = get_home_dir()?;
-    let prompt = wd.replace(home_dir.as_str(), HOME);
+    let prompt = wd.replace(state.home.as_str(), HOME);
 
     return Ok(prompt);
-}
-
-pub fn get_home_dir() -> Result<String, ParseError> {
-    return match var_os("HOME") {
-        Some(os_s) => {
-            if os_s.is_empty() {
-                return Err(ParseError::NoHomeVar);
-            }
-            match os_s.to_str() {
-                None => Err(ParseError::Internal),
-                Some(s) => Ok(s.to_string()),
-            }
-        }
-        None => Err(ParseError::NoHomeVar),
-    };
 }

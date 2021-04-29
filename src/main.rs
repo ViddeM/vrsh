@@ -1,5 +1,4 @@
 use std::borrow::BorrowMut;
-use std::process::exit;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
@@ -11,24 +10,21 @@ use rustyline::hint::HistoryHinter;
 use signal_hook::consts::SIGINT;
 
 use shell::handle_command::{CommandStatus, handle_command};
-use shell::parse_command::{get_home_dir, ParseError};
+use shell::parse_command::{ParseError};
 use shell::parse_command::parse_input;
 use shell::rl_helper::RLHelper;
+use crate::shell::common::state::{new_state};
 
 mod shell;
 
 lalrpop_mod!(pub grammar);
 lalrpop_mod!(pub expansions);
+lalrpop_mod!(pub replacements);
 
 fn main() {
-    let home_dir = match get_home_dir() {
-        Ok(v) => v,
-        Err(e) => {
-            println!("vrsh: unable to find home directory: {}", e);
-            exit(1);
-        }
-    };
-    let history_file = format!("{}/.vrsh_history", home_dir);
+    let mut state = new_state().expect("vrsh");
+
+    let history_file = format!("{}/.vrsh_history", state.home);
 
     signal_handling();
 
@@ -53,14 +49,16 @@ fn main() {
     }
 
     loop {
-        let cmd = parse_input(rl.borrow_mut());
+        let cmd = parse_input(rl.borrow_mut(), &mut state);
         match cmd {
-            Ok(command) => match handle_command(command) {
-                Ok(val) => match val {
-                    CommandStatus::Ok => {}
-                    CommandStatus::Exit => break,
-                },
-                Err(e) => println!("vrsh: {}", e),
+            Ok(command) => {
+                match handle_command(command, &mut state) {
+                    Ok(val) => match val {
+                        CommandStatus::Ok => {}
+                        CommandStatus::Exit => break,
+                    },
+                    Err(e) => println!("vrsh: {}", e),
+                }
             },
             Err(ParseError::RLIgnore) => {}
             Err(e) => println!("vrsh parse error: {}", e),

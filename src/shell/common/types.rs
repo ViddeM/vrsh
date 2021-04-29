@@ -66,3 +66,15 @@ pub enum InitialCmdPart {
     Calculation(InitialCmd)
 }
 
+// Replacements pass
+
+#[derive(Debug, Clone)]
+pub struct ReplacementsCmd {
+    pub parts: Vec<ReplacementPart>
+}
+
+#[derive(Debug, Clone)]
+pub enum ReplacementPart {
+    String(String),
+    Word(String)
+}
