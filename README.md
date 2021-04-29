@@ -32,7 +32,7 @@ Currently only a small amount of features have been implemented but more are pla
  - [x] Built in commands:
    - [x] `cd`
    - [x] `exit`
-   - [ ] `alias`
+   - [x] `alias`
  - [ ] Autocompletion
    - [x] For history, see above.
    - [x] File completion using `tab`.
@@ -44,6 +44,7 @@ Currently only a small amount of features have been implemented but more are pla
    - [ ] Show current user.
    - [ ] Show result of last command.
    - [ ] Prompt on right side as well.
+   - [ ] Support starship integration: https://starship.rs/.
  - [ ] Configuration using a file.
    - [ ] Be able to add aliases.
    - [ ] Configure color scheme.
