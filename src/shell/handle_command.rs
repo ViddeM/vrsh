@@ -9,6 +9,8 @@ use crate::shell::built_ins::alias::handle_alias;
 use crate::shell::common::types::{Redirect, Cmd, CmdPart};
 use crate::shell::built_ins::errors::BuiltInError;
 use crate::shell::common::state::State;
+use termion::cursor::DetectCursorPos;
+use termion::raw::IntoRawMode;
 
 pub enum CommandStatus {
     Ok,
@@ -35,9 +37,22 @@ impl From<BuiltInError> for CommandError {
     fn from(err: BuiltInError) -> Self { CommandError::BuiltInError(err) }
 }
 
+impl From<std::io::Error> for CommandError {
+    fn from(err: std::io::Error) -> Self { CommandError::IO(err) }
+}
+
 pub fn handle_command(command: Cmd, state: &mut State) -> Result<CommandStatus, CommandError> {
     match handle_command_with_output(command, Stdio::inherit(), state) {
-        Ok((status, _)) => Ok(status),
+        Ok((status, _)) => {
+            // Somewhat ugly hack to make sure we always get a newline after a command.
+            let mut stdout = std::io::stdout().into_raw_mode()?;
+            let (x, _) = stdout.cursor_pos()?;
+            if x != 1 {
+                // TODO: do something more fun with this, e.g. print in red or smth
+                print!("\t%vrsh: missing newline%\n")
+            }
+            Ok(status)
+        },
         Err(e) => Err(e)
     }
 }
@@ -114,17 +129,13 @@ fn handle_command_with_output(command: Cmd, output: Stdio, state: &mut State) ->
 }
 
 fn create_redirect_file(file: String) -> Result<Stdio, CommandError> {
-    match File::create(file) {
-        Ok(val) => Ok(Stdio::from(val)),
-        Err(e) => Err(CommandError::IO(e)),
-    }
+    let val = File::create(file)?;
+    Ok(Stdio::from(val))
 }
 
 fn open_redirect_file(file: String) -> Result<Stdio, CommandError> {
-    match File::open(file) {
-        Ok(val) => Ok(Stdio::from(val)),
-        Err(e) => Err(CommandError::IO(e)),
-    }
+    let val = File::open(file)?;
+    Ok(Stdio::from(val))
 }
 
 fn run_command(part: CmdPart, output: Stdio, input: Stdio) -> Result<Child, CommandError> {
