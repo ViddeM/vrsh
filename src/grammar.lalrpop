@@ -10,7 +10,6 @@ match {
     r#""[^#"]*""# => STRING,
     r#"[^\s|"$()=#]+"# => WORD,
     r#"\s*"# => {},
-    r#"#[^\n\r]*[\n\r]*"# => {}, // Comment
 }
 
 pub Command: Cmd = {

@@ -5,7 +5,6 @@ grammar;
 match {
     r#""[^#"]*""# => STRING,
     r#"[^#"]*"# => WORD,
-    r#"#[^#\n\r]*[\n\r]*"# => {}, // Comment
 }
 
 pub ReplacementCmd: ReplacementsCmd = {

@@ -7,19 +7,21 @@ use std::fmt::{Display, Formatter};
 use std::io::Error;
 
 use crate::grammar::CommandParser;
-use crate::expansions::InitialCmdParser;
+use crate::expansions::InitialCmdOrCommentParser;
 use crate::replacements::ReplacementCmdParser;
 use crate::shell::handle_command::{CommandError, handle_sub_command};
-use crate::shell::common::types::{Cmd, InitialCmd, InitialCmdPart, ReplacementsCmd, ReplacementPart};
+use crate::shell::common::types::{Cmd, InitialCmd, InitialCmdPart, ReplacementsCmd, ReplacementPart, InitialCmdOrComment};
 use crate::shell::common::state::{State};
+use crate::shell::parse_command::ParseError::Ignore;
 
 pub enum ParseError {
     IO(std::io::Error),
     NoWorkingDir,
     RLError(ReadlineError),
-    RLIgnore,
+    Ignore,
     LALRPopErr(String, String),
-    EvaluationError(CommandError)
+    EvaluationError(CommandError),
+    Comment
 }
 
 impl Display for ParseError {
@@ -28,9 +30,10 @@ impl Display for ParseError {
             ParseError::IO(e) => write!(f, "io error: '{}'", e),
             ParseError::NoWorkingDir => write!(f, "failed to retrieve current working directory"),
             ParseError::RLError(e) => write!(f, "readline encountered an error: {}", e),
-            ParseError::LALRPopErr(s, pass) => write!(f, "failed parsing: {} in pass {}", s, pass),
-            ParseError::RLIgnore => write!(f, "ignored error"),
-            ParseError::EvaluationError(cmd_err) => write!(f, "failed to evaluate command: {}", cmd_err)
+            ParseError::LALRPopErr(s, pass) => write!(f, "failed parsing: '{}' in pass {}", s, pass),
+            ParseError::Ignore => write!(f, "ignored error"),
+            ParseError::EvaluationError(cmd_err) => write!(f, "failed to evaluate command: {}", cmd_err),
+            ParseError::Comment => write!(f, "comment encountered")
         }
     }
 }
@@ -53,7 +56,7 @@ impl From<CommandError> for ParseError {
 
 const HOME: &str = "~";
 
-pub fn parse_input(rl: &mut Editor<RLHelper>, state: &mut State) -> Result<Cmd, ParseError> {
+pub fn read_and_parse_input(rl: &mut Editor<RLHelper>, state: &mut State) -> Result<Cmd, ParseError> {
     let prompt_prefix = get_prompt(state)?;
     let prompt = format!("{} > ", prompt_prefix);
 
@@ -61,21 +64,35 @@ pub fn parse_input(rl: &mut Editor<RLHelper>, state: &mut State) -> Result<Cmd, 
         Ok(val) => val,
         Err(e) => {
             return match e {
-                ReadlineError::Interrupted => Err(ParseError::RLIgnore),
+                ReadlineError::Interrupted => Err(ParseError::Ignore),
+                ReadlineError::Eof => Err(ParseError::Ignore),
                 _ => Err(ParseError::RLError(e)),
             }
         }
     };
 
-    let initial_cmd: InitialCmd = match InitialCmdParser::new().parse(&s) {
-        Ok(val) => val,
+    parse_input(s, rl, state)
+}
+
+pub fn parse_input(input: String, rl: &mut Editor<RLHelper>, state: &mut State) -> Result<Cmd, ParseError> {
+    if input.is_empty() {
+        return Err(Ignore);
+    }
+
+    let initial_cmd: InitialCmd = match InitialCmdOrCommentParser::new().parse(&input) {
+        Ok(val) => match val {
+            InitialCmdOrComment::InitialCmd(v) => v,
+            InitialCmdOrComment::Comment => {
+                return Err(ParseError::Comment)
+            }
+        },
         Err(e) => return Err(ParseError::LALRPopErr(e.to_string(), String::from("initial"))),
     };
     let expanded = expand_initial_cmd(initial_cmd, state)?;
 
     let command = evaluate_cmd(expanded, state)?;
 
-    rl.add_history_entry(s);
+    rl.add_history_entry(input);
     return Ok(command);
 }
 

@@ -54,6 +54,11 @@ pub enum Redirect {
 
 // Initial pass
 
+pub enum InitialCmdOrComment {
+    InitialCmd(InitialCmd),
+    Comment
+}
+
 #[derive(Debug, Clone)]
 pub struct InitialCmd {
     pub text: String,

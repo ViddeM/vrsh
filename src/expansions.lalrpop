@@ -1,16 +1,20 @@
-use crate::shell::common::types::{InitialCmd, InitialCmdPart};
+use crate::shell::common::types::{InitialCmd, InitialCmdPart, InitialCmdOrComment};
 
 grammar;
 
 match {
-    "#" => COMMENT,
     "$(" => CALCULATION_BEGINNING,
     ")" => CALCULATION_END,
     r#"[^$()#]+"# => TEXT,
-    r#"#[^#\n\r]*[\n\r]*"# => {}, // Comment
+    r#"#[^#\n\r]*[\n\r]*"# => COMMENT, // '#' comment
 }
 
-pub InitialCmd: InitialCmd = {
+pub InitialCmdOrComment: InitialCmdOrComment = {
+    <cmd: InitialCmd> => InitialCmdOrComment::InitialCmd(cmd),
+    COMMENT => InitialCmdOrComment::Comment,
+}
+
+InitialCmd: InitialCmd = {
     <text: TEXT> <parts: InitialCmdPart*> => InitialCmd {
         text: String::from(text),
         parts,
