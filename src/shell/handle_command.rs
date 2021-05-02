@@ -160,6 +160,11 @@ pub fn handle_sub_command(command: Cmd, state: &mut State) -> Result<String, Com
                 let mut buffer = String::new();
                 match c.read_to_string(&mut buffer) {
                     Ok(_) => {
+                        if let Some(last) = buffer.chars().last() {
+                            if last == '\n' {
+                                buffer.pop();
+                            }
+                        }
                         Ok(buffer.replace("\n", " "))
                     },
                     Err(_) => Ok("".to_string())
