@@ -135,8 +135,9 @@ fn handle_replaced_cmd(replacement_cmd: ReplacementsCmd, state: &State) -> Strin
     let mut replaced_str = String::new();
     for part in replacement_cmd.parts.iter() {
         let val = match part {
-            ReplacementPart::String(s) => s.to_owned(),
-            ReplacementPart::Word(w) => perform_replacement(w.to_string(), state)
+            ReplacementPart::String(s) => s.to_string(),
+            ReplacementPart::Word(w) => perform_replacement(w.to_string(), state),
+            ReplacementPart::Variable(var) => read_var(var.to_string(), state).to_string()
         };
         replaced_str = replaced_str + &val;
     }
@@ -149,6 +150,13 @@ fn perform_replacement(str: String, state: &State) -> String {
         replaced = replaced.replace(key, val);
     }
     replaced.replace(HOME, state.home.as_str())
+}
+
+fn read_var(var: String, state: &State) -> &str {
+    match state.variables.get(&var) {
+        Some(val) => val,
+        None => ""
+    }
 }
 
 fn get_prompt(state: &State) -> Result<String, ParseError> {

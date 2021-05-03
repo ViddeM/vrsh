@@ -1,4 +1,4 @@
-use crate::shell::common::types::{Cmd, CmdPart, Arg, Redirect, CmdPartSection, Assignment};
+use crate::shell::common::types::{Cmd, CmdPart, Arg, Redirect, CmdPartSection, Assignment, CmdType};
 
 grammar;
 
@@ -7,15 +7,24 @@ match {
     "<" => REDIRECT_IN,
     "|" => PIPE,
     "=" => EQUALS,
+    "set" => SET,
     r#""[^#"]*""# => STRING,
     r#"[^\s|"$()=#]+"# => WORD,
     r#"\s*"# => {},
 }
 
 pub Command: Cmd = {
-    <p0:Part> <prest:(PIPE <Part>)*> => Cmd{
+    <p0:CmdType> <prest:(PIPE <CmdType>)*> => Cmd{
         parts: vec![p0].into_iter().chain(prest.into_iter()).collect(),
     }
+}
+
+CmdType: CmdType = {
+    <part: Part> => CmdType::Cmd(part),
+    SET <var: WORD> EQUALS <ass: Assignment> => CmdType::Variable(String::from(var), match ass {
+        Assignment::Word(w) => w,
+        Assignment::String(s) => s
+    })
 }
 
 Part: CmdPart = {
@@ -29,7 +38,8 @@ Part: CmdPart = {
             CmdPartSection::Redirect(r) => Some(r),
             CmdPartSection::Arg(_) => None,
         }).collect()].concat(),
-    }
+    },
+
 }
 
 CmdPartSection: CmdPartSection = {

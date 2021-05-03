@@ -6,11 +6,12 @@ use crate::shell::handle_command::CommandError::FailedToSpawnChild;
 use std::io::{Read};
 use crate::shell::built_ins::cd::handle_dir_change;
 use crate::shell::built_ins::alias::handle_alias;
-use crate::shell::common::types::{Redirect, Cmd, CmdPart};
+use crate::shell::common::types::{Redirect, Cmd, CmdPart, CmdType};
 use crate::shell::built_ins::errors::BuiltInError;
 use crate::shell::common::state::State;
 use termion::cursor::DetectCursorPos;
 use termion::raw::IntoRawMode;
+use crate::shell::built_ins::set_variable::set_variable;
 
 pub enum CommandStatus {
     Ok,
@@ -61,54 +62,33 @@ fn handle_command_with_output(command: Cmd, output: Stdio, state: &mut State) ->
     let mut all_prevs: Vec<Child> = Vec::new();
     let mut output = Some(output);
     for (index, part) in command.parts.into_iter().enumerate().rev() {
-        match part.cmd.as_str() {
-            "exit" => return Ok((CommandStatus::Exit, None)),
-            "cd" => match handle_dir_change(part.args) {
-                Ok(_) => {}
-                Err(e) => println!("vrsh: {}", e)
-            },
-            "alias" => match handle_alias(part.args, state) {
-                Ok(_) => {}
-                Err(e) => println!("vrsh: {}", e)
+        match part {
+            CmdType::Cmd(c) => {
+                match c.cmd.as_str() {
+                    "exit" => return Ok((CommandStatus::Exit, None)),
+                    "cd" => match handle_dir_change(c.args) {
+                        Ok(_) => {}
+                        Err(e) => println!("vrsh: {}", e)
+                    },
+                    "alias" => match handle_alias(c.args, state) {
+                        Ok(_) => {}
+                        Err(e) => println!("vrsh: {}", e)
+                    }
+                    _ => match execute_command(c, output, index) {
+                        Ok(mut c) => {
+                            output = Some(match c.stdin.take() {
+                                Some(v) => Stdio::from(v),
+                                None => Stdio::inherit(),
+                            });
+
+                            all_prevs.push(c);
+                        }
+                        Err(e) => return Err(e)
+                    }
+                }
             }
-            _ => {
-                let mut redirect_in: Option<String> = None;
-                let mut redirect_out: Option<String> = None;
-                for redirect in part.redirects.iter() {
-                    match redirect {
-                        Redirect::In(val) => redirect_in = Some(val.clone()),
-                        Redirect::Out(val) => redirect_out = Some(val.clone()),
-                    }
-                }
-
-                let cmd_out = if let Some(file) = redirect_out {
-                    create_redirect_file(file)?
-                } else {
-                    match output {
-                        None => Stdio::piped(),
-                        Some(out) => out
-                    }
-                };
-
-                let cmd_in = if let Some(file) = redirect_in {
-                    open_redirect_file(file)?
-                } else if index == 0 {
-                    Stdio::inherit()
-                } else {
-                    Stdio::piped()
-                };
-
-                match run_command(part, cmd_out, cmd_in) {
-                    Ok(mut c) => {
-                        output = Some(match c.stdin.take() {
-                            Some(v) => Stdio::from(v),
-                            None => Stdio::inherit(),
-                        });
-
-                        all_prevs.push(c);
-                    }
-                    Err(e) => return Err(e)
-                }
+            CmdType::Variable(var, val) => {
+                set_variable(var, val, state)
             }
         }
     }
@@ -126,6 +106,36 @@ fn handle_command_with_output(command: Cmd, output: Stdio, state: &mut State) ->
     }
 
     Ok((CommandStatus::Ok, res))
+}
+
+fn execute_command(part: CmdPart, output: Option<Stdio>, index: usize) -> Result<Child, CommandError> {
+    let mut redirect_in: Option<String> = None;
+    let mut redirect_out: Option<String> = None;
+    for redirect in part.redirects.iter() {
+        match redirect {
+            Redirect::In(val) => redirect_in = Some(val.clone()),
+            Redirect::Out(val) => redirect_out = Some(val.clone()),
+        }
+    }
+
+    let cmd_out = if let Some(file) = redirect_out {
+        create_redirect_file(file)?
+    } else {
+        match output {
+            None => Stdio::piped(),
+            Some(out) => out
+        }
+    };
+
+    let cmd_in = if let Some(file) = redirect_in {
+        open_redirect_file(file)?
+    } else if index == 0 {
+        Stdio::inherit()
+    } else {
+        Stdio::piped()
+    };
+
+    return run_command(part, cmd_out, cmd_in)
 }
 
 fn create_redirect_file(file: String) -> Result<Stdio, CommandError> {

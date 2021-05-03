@@ -34,7 +34,7 @@ Currently only a small amount of features have been implemented but more are pla
    - [x] `alias`
       - [x] `~` -> the home directory of the current user.
    - [ ] `source`
-   - [ ] variables i.e. `A="some value"`
+   - [x] variables i.e. `A="some value"`
       - [ ] Program specific variables i.e. `SOME_VARIABLE="some_value" firefox`
  - [ ] Autocompletion
    - [x] For history, see above.

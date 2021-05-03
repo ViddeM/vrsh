@@ -3,8 +3,9 @@ use crate::shell::common::types::{ReplacementsCmd, ReplacementPart};
 grammar;
 
 match {
-    r#""[^#"]*""# => STRING,
-    r#"[^#"]*"# => WORD,
+    r#""[^"]*""# => STRING,
+    r#"\$[^$\s"]"# => READ_VARIABLE,
+    r#"[^"$]*"# => WORD,
 }
 
 pub ReplacementCmd: ReplacementsCmd = {
@@ -15,5 +16,6 @@ pub ReplacementCmd: ReplacementsCmd = {
 
 ReplacementPart: ReplacementPart = {
     STRING => ReplacementPart::String(String::from(<>)),
+    READ_VARIABLE => ReplacementPart::Variable(String::from(<>.strip_prefix("$").unwrap())),
     WORD => ReplacementPart::Word(String::from(<>)),
 }

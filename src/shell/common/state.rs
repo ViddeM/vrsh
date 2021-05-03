@@ -25,7 +25,8 @@ const HOME: &str = "HOME";
 #[derive(Debug, Clone)]
 pub struct State {
     pub aliases: HashMap<String, String>,
-    pub home: String
+    pub home: String,
+    pub variables: HashMap<String, String>
 }
 
 pub fn new_state() -> Result<State, StateError> {
@@ -34,6 +35,7 @@ pub fn new_state() -> Result<State, StateError> {
     Ok(State {
         aliases: HashMap::new(),
         home: home_dir,
+        variables: HashMap::new(),
     })
 }
 

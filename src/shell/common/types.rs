@@ -3,7 +3,13 @@ use std::fmt;
 
 #[derive(Debug, Clone)]
 pub struct Cmd {
-    pub parts: Vec<CmdPart>,
+    pub parts: Vec<CmdType>,
+}
+
+#[derive(Debug, Clone)]
+pub enum CmdType {
+    Cmd(CmdPart),
+    Variable(String, String)
 }
 
 #[derive(Debug, Clone)]
@@ -81,5 +87,6 @@ pub struct ReplacementsCmd {
 #[derive(Debug, Clone)]
 pub enum ReplacementPart {
     String(String),
-    Word(String)
+    Word(String),
+    Variable(String)
 }
