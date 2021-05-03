@@ -24,8 +24,6 @@ Currently only a small amount of features have been implemented but more are pla
    - [x] Command expansions using `$()`.
    - [ ] * -> any file matching. 
    - [ ] More... see above url
- - [x] Aliases
-   - [x] `~` -> the home directory of the current user.
  - [x] Piping between programs `|`.
  - [x] Redirects:
    - [x] From command output to file (`>`).
@@ -34,7 +32,10 @@ Currently only a small amount of features have been implemented but more are pla
    - [x] `cd`
    - [x] `exit`
    - [x] `alias`
+      - [x] `~` -> the home directory of the current user.
    - [ ] `source`
+   - [ ] variables i.e. `A="some value"`
+      - [ ] Program specific variables i.e. `SOME_VARIABLE="some_value" firefox`
  - [ ] Autocompletion
    - [x] For history, see above.
    - [x] File completion using `tab`.
