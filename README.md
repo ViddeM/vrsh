@@ -48,8 +48,8 @@ Currently only a small amount of features have been implemented but more are pla
    - [ ] Show result of last command.
    - [ ] Prompt on right side as well.
    - [ ] Support starship integration: https://starship.rs/.
- - [ ] Configuration using a file.
-   - [ ] Be able to add aliases.
+ - [x] Configuration using a file.
+   - [x] Be able to add aliases.
    - [ ] Configure color scheme.
    - [ ] Customize prompt
  - [ ] Background processes `&`
