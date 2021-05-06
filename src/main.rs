@@ -18,9 +18,9 @@ use std::path::Path;
 use std::fs::File;
 use std::io::{ErrorKind, BufRead};
 use std::io;
-use crate::shell::parse_command::read_and_parse_input;
 use crate::shell::common::types::Cmd;
 use std::process::exit;
+use crate::shell::prompt::{read_input, ReadError};
 
 mod shell;
 
@@ -61,12 +61,23 @@ fn main() {
     println!("vrsh: using init file {}", init_file);
     let init_lines = read_or_create_init_file(init_file);
     for line in init_lines.into_iter() {
-        let cmd = parse_input(line, rl.borrow_mut(), &mut state);
+        let cmd = parse_input(line, &mut state);
         handle_cmd(cmd, &mut state)
     }
 
     loop {
-        let cmd = read_and_parse_input(rl.borrow_mut(), &mut state);
+        let input = match read_input(rl.borrow_mut(), &mut state) {
+            Ok(v) => v,
+            Err(e) => match e {
+                ReadError::Ignore => continue,
+                _ => {
+                    println!("vrsh: failed to read input: {}", e);
+                    continue;
+                }
+            }
+        };
+        rl.add_history_entry(input.clone());
+        let cmd = parse_input(input, &mut state);
         handle_cmd(cmd, &mut state);
 
         match rl.save_history(history_file.as_str()) {
@@ -90,7 +101,7 @@ fn handle_cmd(cmd: Result<Cmd, ParseError>, state: &mut State) {
                 Err(e) => println!("vrsh: {}", e),
             }
         },
-        Err(ParseError::Ignore) => {},
+        Err(ParseError::InputEmpty) => {},
         Err(ParseError::Comment) => {},
         Err(e) => println!("vrsh parse error: {}", e),
     }

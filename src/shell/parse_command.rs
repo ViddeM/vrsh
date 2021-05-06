@@ -1,7 +1,3 @@
-use crate::shell::rl_helper::RLHelper;
-use rustyline::error::ReadlineError;
-use rustyline::Editor;
-use std::env::{current_dir};
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::io::Error;
@@ -12,28 +8,23 @@ use crate::replacements::ReplacementCmdParser;
 use crate::shell::handle_command::{CommandError, handle_sub_command};
 use crate::shell::common::types::{Cmd, InitialCmd, InitialCmdPart, ReplacementsCmd, ReplacementPart, InitialCmdOrComment};
 use crate::shell::common::state::{State};
-use crate::shell::parse_command::ParseError::Ignore;
 
 pub enum ParseError {
     IO(std::io::Error),
-    NoWorkingDir,
-    RLError(ReadlineError),
-    Ignore,
     LALRPopErr(String, String),
     EvaluationError(CommandError),
-    Comment
+    Comment,
+    InputEmpty,
 }
 
 impl Display for ParseError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             ParseError::IO(e) => write!(f, "io error: '{}'", e),
-            ParseError::NoWorkingDir => write!(f, "failed to retrieve current working directory"),
-            ParseError::RLError(e) => write!(f, "readline encountered an error: {}", e),
             ParseError::LALRPopErr(s, pass) => write!(f, "failed parsing: '{}' in pass {}", s, pass),
-            ParseError::Ignore => write!(f, "ignored error"),
             ParseError::EvaluationError(cmd_err) => write!(f, "failed to evaluate command: {}", cmd_err),
-            ParseError::Comment => write!(f, "comment encountered")
+            ParseError::Comment => write!(f, "comment encountered, ignore"),
+            ParseError::InputEmpty => write!(f, "input empty, ignore"),
         }
     }
 }
@@ -44,41 +35,24 @@ impl From<std::io::Error> for ParseError {
     }
 }
 
-impl From<ReadlineError> for ParseError {
-    fn from(rle: ReadlineError) -> Self {
-        ParseError::RLError(rle)
-    }
-}
-
 impl From<CommandError> for ParseError {
     fn from (cmd_err: CommandError) -> Self { ParseError::EvaluationError(cmd_err) }
 }
 
-const HOME: &str = "~";
+pub const HOME: &str = "~";
 
-pub fn read_and_parse_input(rl: &mut Editor<RLHelper>, state: &mut State) -> Result<Cmd, ParseError> {
-    let prompt_prefix = get_prompt(state)?;
-    let prompt = format!("{} > ", prompt_prefix);
-
-    let s = match rl.readline(prompt.as_str()) {
-        Ok(val) => val,
-        Err(e) => {
-            return match e {
-                ReadlineError::Interrupted => Err(ParseError::Ignore),
-                ReadlineError::Eof => Err(ParseError::Ignore),
-                _ => Err(ParseError::RLError(e)),
-            }
-        }
-    };
-
-    parse_input(s, rl, state)
-}
-
-pub fn parse_input(input: String, rl: &mut Editor<RLHelper>, state: &mut State) -> Result<Cmd, ParseError> {
+pub fn parse_input(input: String, state: &mut State) -> Result<Cmd, ParseError> {
     if input.is_empty() {
-        return Err(Ignore);
+        return Err(ParseError::InputEmpty);
     }
 
+    let expanded = parse_initial_cmd(input, state)?;
+
+    let command = evaluate_cmd(expanded, state)?;
+    return Ok(command);
+}
+
+pub fn parse_initial_cmd(input: String, state: &mut State) -> Result<String, ParseError> {
     let initial_cmd: InitialCmd = match InitialCmdOrCommentParser::new().parse(&input) {
         Ok(val) => match val {
             InitialCmdOrComment::InitialCmd(v) => v,
@@ -88,12 +62,8 @@ pub fn parse_input(input: String, rl: &mut Editor<RLHelper>, state: &mut State) 
         },
         Err(e) => return Err(ParseError::LALRPopErr(e.to_string(), String::from("initial"))),
     };
-    let expanded = expand_initial_cmd(initial_cmd, state)?;
 
-    let command = evaluate_cmd(expanded, state)?;
-
-    rl.add_history_entry(input);
-    return Ok(command);
+    Ok(expand_initial_cmd(initial_cmd, state)?)
 }
 
 fn expand_initial_cmd(cmd: InitialCmd, state: &mut State) -> Result<String, ParseError> {
@@ -157,16 +127,4 @@ fn read_var(var: String, state: &State) -> &str {
         Some(val) => val,
         None => ""
     }
-}
-
-fn get_prompt(state: &State) -> Result<String, ParseError> {
-    let curr_dir = current_dir()?;
-    let wd = match curr_dir.to_str() {
-        Some(dir) => dir,
-        None => return Err(ParseError::NoWorkingDir),
-    };
-
-    let prompt = wd.replace(state.home.as_str(), HOME);
-
-    return Ok(prompt);
 }
