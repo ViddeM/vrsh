@@ -3,9 +3,9 @@ use crate::shell::common::types::{ReplacementsCmd, ReplacementPart};
 grammar;
 
 match {
-    r#""[^"]*""# => STRING,
+    r#"("[^"]*")|('[^']*')"# => STRING,
     r#"\$[^$\s"]"# => READ_VARIABLE,
-    r#"[^"$]*"# => WORD,
+    r#"[^"'$]*"# => WORD,
 }
 
 pub ReplacementCmd: ReplacementsCmd = {

@@ -67,7 +67,7 @@ pub fn parse_initial_cmd(input: &str, state: &mut State) -> Result<String, Parse
 }
 
 fn expand_initial_cmd(cmd: InitialCmd, state: &mut State) -> Result<String, ParseError> {
-    let mut text = cmd.text;
+    let mut text = "".to_string();
     for part in cmd.parts.into_iter() {
         match part {
             InitialCmdPart::String(val) => {
@@ -77,6 +77,9 @@ fn expand_initial_cmd(cmd: InitialCmd, state: &mut State) -> Result<String, Pars
                 let inner = expand_initial_cmd(cmd, state)?;
                 let new_cmd = evaluate_cmd(inner, state)?;
                 text += handle_sub_command(new_cmd, state)?.as_str();
+            },
+            InitialCmdPart::SingleQuotedString(str) => {
+                text = text + str.as_str();
             }
         }
     }

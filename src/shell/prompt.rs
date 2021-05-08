@@ -7,9 +7,6 @@ use std::fmt::{Display, Formatter};
 use std::fmt;
 use crate::shell::parse_command::{parse_initial_cmd, HOME};
 use std::io::Error;
-use crate::shell::handle_command::{handle_sub_command, CommandError};
-use std::process::Command;
-use crate::shell::common::types::{Cmd, CmdPart, CmdType, Arg};
 
 pub enum ReadError {
     Ignore,

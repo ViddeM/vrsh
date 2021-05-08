@@ -67,14 +67,14 @@ pub enum InitialCmdOrComment {
 
 #[derive(Debug, Clone)]
 pub struct InitialCmd {
-    pub text: String,
     pub parts: Vec<InitialCmdPart>
 }
 
 #[derive(Debug, Clone)]
 pub enum InitialCmdPart {
     String(String),
-    Calculation(InitialCmd)
+    SingleQuotedString(String),
+    Calculation(InitialCmd),
 }
 
 // Replacements pass

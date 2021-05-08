@@ -8,8 +8,9 @@ match {
     "|" => PIPE,
     "=" => EQUALS,
     "set" => SET,
-    r#""[^#"]*""# => STRING,
-    r#"[^\s|"$()=#]+"# => WORD,
+    r#""[^"]*""# => STRING,
+    r#"'[^']*'"# => SINGLE_QUOTED_STRING,
+    r#"[^\s|"$()=#']+"# => WORD,
     r#"\s*"# => {},
 }
 
@@ -61,6 +62,7 @@ Redirect: Redirect = {
 }
 
 Assignment: Assignment = {
+    SINGLE_QUOTED_STRING => Assignment::String(String::from(<>.strip_prefix("'").unwrap().strip_suffix("'").unwrap())),
     STRING => Assignment::String(String::from(<>.strip_prefix('"').unwrap().strip_suffix('"').unwrap())),
     WORD => Assignment::Word(String::from(<>)),
 }

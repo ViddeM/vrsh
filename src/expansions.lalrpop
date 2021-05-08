@@ -7,7 +7,7 @@ match {
     ")" => CALCULATION_END,
     r#"[^$()#']+"# => TEXT,
     r#"#[^#\n\r]*[\n\r]*"# => COMMENT, // '#' comment
-    r#"'[^']'"# => SINGLE_QUOTE_STRING,
+    r#"'[^']*'"# => SINGLE_QUOTE_STRING,
 }
 
 pub InitialCmdOrComment: InitialCmdOrComment = {
@@ -16,13 +16,13 @@ pub InitialCmdOrComment: InitialCmdOrComment = {
 }
 
 InitialCmd: InitialCmd = {
-    <text: TEXT> <parts: InitialCmdPart*> => InitialCmd {
-        text: String::from(text),
+    <parts: InitialCmdPart+> => InitialCmd {
         parts,
     },
 }
 
 InitialCmdPart: InitialCmdPart = {
+    <str: SINGLE_QUOTE_STRING> => InitialCmdPart::SingleQuotedString(String::from(str)),
     CALCULATION_BEGINNING <cmd: InitialCmd> CALCULATION_END => InitialCmdPart::Calculation(cmd),
     <text: TEXT> => InitialCmdPart::String(String::from(text)),
 }
