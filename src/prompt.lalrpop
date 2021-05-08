@@ -1,0 +1,21 @@
+use crate::shell::common::prompt_types::{PromptEscape};
+
+grammar;
+
+match {
+    "%" => ESCAPE_CHAR,
+    "n" => USERNAME,
+    r#"(d|/)"# => CWD,
+    "~" => CWD_HOME,
+}
+
+pub EscaptedPrompt: PromptEscape = {
+    ESCAPE_CHAR <e: PromptExpansion> => e,
+}
+
+PromptExpansion: PromptEscape = {
+    ESCAPE_CHAR => PromptEscape::EscapeChar,
+    USERNAME => PromptEscape::Username,
+    CWD => PromptEscape::CWD,
+    CWD_HOME => PromptEscape::CWD_HOME,
+}

@@ -7,6 +7,9 @@ use std::fmt::{Display, Formatter};
 use std::fmt;
 use crate::shell::parse_command::{parse_initial_cmd, HOME};
 use std::io::Error;
+use crate::shell::handle_command::{handle_sub_command, CommandError};
+use std::process::Command;
+use crate::shell::common::types::{Cmd, CmdPart, CmdType, Arg};
 
 pub enum ReadError {
     Ignore,
@@ -48,7 +51,8 @@ pub fn read_input(rl: &mut Editor<RLHelper>, state: &mut State) -> Result<String
 
 fn get_prompt(state: &mut State) -> Result<String, ReadError> {
     if let Some(p) = state.variables.get("PROMPT") {
-        let expanded_prompt = match parse_initial_cmd(p.to_owned(), state) {
+        println!("READING prompt {}", p);
+        let expanded_prompt = match parse_initial_cmd(&p.clone(), state) {
             Ok(v) => v,
             Err(e) => return Ok(format!("vrsh: failed to parse prompt: {}", e).to_string())
         };

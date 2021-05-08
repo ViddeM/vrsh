@@ -5,8 +5,9 @@ grammar;
 match {
     "$(" => CALCULATION_BEGINNING,
     ")" => CALCULATION_END,
-    r#"[^$()#]+"# => TEXT,
+    r#"[^$()#']+"# => TEXT,
     r#"#[^#\n\r]*[\n\r]*"# => COMMENT, // '#' comment
+    r#"'[^']'"# => SINGLE_QUOTE_STRING,
 }
 
 pub InitialCmdOrComment: InitialCmdOrComment = {
@@ -18,7 +19,7 @@ InitialCmd: InitialCmd = {
     <text: TEXT> <parts: InitialCmdPart*> => InitialCmd {
         text: String::from(text),
         parts,
-    }
+    },
 }
 
 InitialCmdPart: InitialCmdPart = {

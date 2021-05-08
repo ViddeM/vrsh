@@ -61,8 +61,8 @@ fn main() {
     println!("vrsh: using init file {}", init_file);
     let init_lines = read_or_create_init_file(init_file);
     for line in init_lines.into_iter() {
-        let cmd = parse_input(line, &mut state);
-        handle_cmd(cmd, &mut state)
+        let cmd = parse_input(line.clone(), &mut state);
+        handle_cmd(cmd, &line, &mut state)
     }
 
     loop {
@@ -77,8 +77,8 @@ fn main() {
             }
         };
         rl.add_history_entry(input.clone());
-        let cmd = parse_input(input, &mut state);
-        handle_cmd(cmd, &mut state);
+        let cmd = parse_input(input.clone(), &mut state);
+        handle_cmd(cmd, &input, &mut state);
 
         match rl.save_history(history_file.as_str()) {
             Ok(_) => {}
@@ -90,7 +90,7 @@ fn main() {
     }
 }
 
-fn handle_cmd(cmd: Result<Cmd, ParseError>, state: &mut State) {
+fn handle_cmd(cmd: Result<Cmd, ParseError>, line: &str, state: &mut State) {
     match cmd {
         Ok(command) => {
             match handle_command(command, state) {
@@ -103,7 +103,7 @@ fn handle_cmd(cmd: Result<Cmd, ParseError>, state: &mut State) {
         },
         Err(ParseError::InputEmpty) => {},
         Err(ParseError::Comment) => {},
-        Err(e) => println!("vrsh parse error: {}", e),
+        Err(e) => println!("vrsh: failed to parse '{}' due to {}", line, e),
     }
 }
 

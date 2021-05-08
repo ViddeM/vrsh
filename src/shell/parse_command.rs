@@ -46,13 +46,13 @@ pub fn parse_input(input: String, state: &mut State) -> Result<Cmd, ParseError> 
         return Err(ParseError::InputEmpty);
     }
 
-    let expanded = parse_initial_cmd(input, state)?;
+    let expanded = parse_initial_cmd(&input, state)?;
 
     let command = evaluate_cmd(expanded, state)?;
     return Ok(command);
 }
 
-pub fn parse_initial_cmd(input: String, state: &mut State) -> Result<String, ParseError> {
+pub fn parse_initial_cmd(input: &str, state: &mut State) -> Result<String, ParseError> {
     let initial_cmd: InitialCmd = match InitialCmdOrCommentParser::new().parse(&input) {
         Ok(val) => match val {
             InitialCmdOrComment::InitialCmd(v) => v,
