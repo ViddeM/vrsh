@@ -1,21 +1,27 @@
-use crate::shell::common::prompt_types::{PromptEscape};
+use crate::shell::common::prompt_types::{PromptEscape, PromptCmdPart, PromptCmd};
 
 grammar;
 
 match {
-    "%" => ESCAPE_CHAR,
-    "n" => USERNAME,
-    r#"(d|/)"# => CWD,
-    "~" => CWD_HOME,
+    "%%" => ESCAPE_CHAR,
+    "%n" => USERNAME,
+    r#"%([d/])"# => CWD,
+    r#"%~"# => CWD_HOME,
+    r#"[^%]*"# => TEXT
 }
 
-pub EscaptedPrompt: PromptEscape = {
-    ESCAPE_CHAR <e: PromptExpansion> => e,
+pub PromptCmd: PromptCmd = {
+    <parts: PromptCmdPart*> => parts,
+}
+
+pub PromptCmdPart: PromptCmdPart = {
+    <e: PromptExpansion> => PromptCmdPart::Escaped(e),
+    TEXT => PromptCmdPart::Cmd(String::from(<>)),
 }
 
 PromptExpansion: PromptEscape = {
     ESCAPE_CHAR => PromptEscape::EscapeChar,
     USERNAME => PromptEscape::Username,
-    CWD => PromptEscape::CWD,
-    CWD_HOME => PromptEscape::CWD_HOME,
+    CWD => PromptEscape::Cwd,
+    CWD_HOME => PromptEscape::CwdHome,
 }

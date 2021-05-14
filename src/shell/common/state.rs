@@ -21,35 +21,41 @@ impl Display for StateError {
 }
 
 const HOME: &str = "HOME";
+const USER: &str = "USER";
 
 #[derive(Debug, Clone)]
 pub struct State {
     pub aliases: HashMap<String, String>,
+    pub username: String,
     pub home: String,
     pub variables: HashMap<String, String>
 }
 
 pub fn new_state() -> Result<State, StateError> {
-    let home_dir = get_home_dir()?;
+    let home_dir = get_env_variable(HOME)?;
+    let username = get_env_variable(USER)?;
 
     Ok(State {
         aliases: HashMap::new(),
+        username,
         home: home_dir,
         variables: HashMap::new(),
+
     })
 }
 
-pub fn get_home_dir() -> Result<String, StateError> {
-    return match var_os(HOME) {
+fn get_env_variable(var: &str) -> Result<String, StateError> {
+    return match var_os(var) {
         Some(os_s) => {
             if os_s.is_empty() {
-                return Err(StateError::EnvVarEmpty(String::from(HOME)))
+                return Err(StateError::EnvVarEmpty(String::from(var)))
             }
+
             match os_s.to_str() {
-                None => Err(StateError::InvalidEnvVar(String::from(HOME))),
-                Some(s) => Ok(s.to_string()),
+                None => Err(StateError::InvalidEnvVar(String::from(var))),
+                Some(s) => Ok(s.to_string())
             }
         }
-        None => Err(StateError::EnvVarNotSet(String::from(HOME)))
-    };
+        None => Err(StateError::EnvVarNotSet(String::from(var)))
+    }
 }

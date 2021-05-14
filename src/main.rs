@@ -27,6 +27,7 @@ mod shell;
 lalrpop_mod!(pub grammar);
 lalrpop_mod!(pub expansions);
 lalrpop_mod!(pub replacements);
+lalrpop_mod!(pub prompt);
 
 fn main() {
     let mut state = new_state().expect("vrsh");
