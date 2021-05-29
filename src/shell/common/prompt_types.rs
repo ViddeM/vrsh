@@ -10,4 +10,13 @@ pub enum PromptEscape {
     Username,
     Cwd,
     CwdHome,
+    FGColorStart(Argument),
+    FGColorEnd,
+    BGColorStart(Argument),
+    BGColorEnd,
+}
+
+pub enum Argument {
+    Number(u8),
+    Word(String),
 }

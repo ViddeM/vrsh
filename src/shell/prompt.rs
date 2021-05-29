@@ -8,7 +8,8 @@ use std::fmt;
 use crate::shell::parse_command::{parse_initial_cmd, HOME, ParseError};
 use std::io::Error;
 use crate::prompt::PromptCmdParser;
-use crate::shell::common::prompt_types::{PromptCmd, PromptCmdPart, PromptEscape};
+use crate::shell::common::prompt_types::{PromptCmd, PromptCmdPart, PromptEscape, Argument};
+use crate::shell::common::colors::{fg_color_code, fg_color, Color, ColorError, reset_color, bg_color_code, bg_color};
 
 pub enum ReadError {
     Ignore,
@@ -17,6 +18,7 @@ pub enum ReadError {
     ParseError(ParseError),
     NoWorkingDir,
     IO(std::io::Error),
+    ColorError(ColorError),
 }
 
 impl Display for ReadError {
@@ -27,6 +29,7 @@ impl Display for ReadError {
             ReadError::RLError(e) => write!(f, "readline encountered an error: {}", e),
             ReadError::LalrpopError(s) => write!(f, "lalrpop error: {}", s),
             ReadError::ParseError(e) => write!(f, "parse error: {}", e),
+            ReadError::ColorError(e) => write!(f, "color error: {}", e),
             ReadError::Ignore => write!(f, "ignored error"),
         }
     }
@@ -36,6 +39,10 @@ impl From<std::io::Error> for ReadError {
     fn from(err: Error) -> Self {
         ReadError::IO(err)
     }
+}
+
+impl From<ColorError> for ReadError {
+    fn from(c: ColorError) -> Self { ReadError::ColorError(c) }
 }
 
 impl From<ParseError> for ReadError {
@@ -107,23 +114,37 @@ fn prompt_expand(input: &str, state: &mut State) -> Result<String, ReadError> {
 }
 
 fn handle_prompt_escape(e: PromptEscape, state: &mut State) -> Result<String, ReadError> {
-    match e {
-        PromptEscape::EscapeChar => Ok(String::from("%")),
-        PromptEscape::Username => Ok(state.username.clone()),
+    Ok(match e {
+        PromptEscape::EscapeChar => String::from("%"),
+        PromptEscape::Username => state.username.clone(),
         PromptEscape::Cwd => {
             let curr_dir = current_dir()?;
             match curr_dir.to_str() {
-                Some(dir) => Ok(dir.to_string()),
-                None => Err(ReadError::NoWorkingDir),
+                Some(dir) => dir.to_string(),
+                None => return Err(ReadError::NoWorkingDir),
             }
         },
         PromptEscape::CwdHome => {
             let curr_dir = current_dir()?;
             let cwd = match curr_dir.to_str() {
-                Some(dir) => Ok(dir),
-                None => Err(ReadError::NoWorkingDir),
-            }?;
-            Ok(cwd.replace(state.home.as_str(), HOME))
+                Some(dir) => dir,
+                None => return Err(ReadError::NoWorkingDir),
+            };
+            cwd.replace(state.home.as_str(), &format!("{}", HOME)) // 🏠
         },
-    }
+        PromptEscape::FGColorStart(color_arg) => {
+            match color_arg {
+                Argument::Number(n) => fg_color_code(n),
+                Argument::Word(w) => fg_color(Color::from_string(&w)?)
+            }
+        }
+        PromptEscape::FGColorEnd => reset_color(),
+        PromptEscape::BGColorStart(color_arg) => {
+            match color_arg {
+                Argument::Number(n) => bg_color_code(n),
+                Argument::Word(w) => bg_color(Color::from_string(&w)?)
+            }
+        }
+        PromptEscape::BGColorEnd => reset_color(),
+    })
 }

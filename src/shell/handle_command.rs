@@ -12,6 +12,7 @@ use crate::shell::common::state::State;
 use termion::cursor::DetectCursorPos;
 use termion::raw::IntoRawMode;
 use crate::shell::built_ins::set_variable::set_variable;
+use crate::shell::common::colors::test_colors;
 
 pub enum CommandStatus {
     Ok,
@@ -74,6 +75,11 @@ fn handle_command_with_output(command: Cmd, output: Stdio, state: &mut State) ->
                         Ok(_) => {}
                         Err(e) => println!("vrsh: {}", e)
                     }
+                    "vrsh-colors" => {
+                        println!("--------");
+                        test_colors();
+                        println!("--------");
+                    },
                     _ => match execute_command(c, output, index) {
                         Ok(mut c) => {
                             output = Some(match c.stdin.take() {

@@ -39,6 +39,7 @@ impl From<CommandError> for ParseError {
     fn from (cmd_err: CommandError) -> Self { ParseError::EvaluationError(cmd_err) }
 }
 
+// 🏠
 pub const HOME: &str = "~";
 
 pub fn parse_input(input: String, state: &mut State) -> Result<Cmd, ParseError> {

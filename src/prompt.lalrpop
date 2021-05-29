@@ -1,13 +1,22 @@
-use crate::shell::common::prompt_types::{PromptEscape, PromptCmdPart, PromptCmd};
+use crate::shell::common::prompt_types::{PromptEscape, PromptCmdPart, PromptCmd, Argument};
 
 grammar;
 
 match {
     "%%" => ESCAPE_CHAR,
     "%n" => USERNAME,
+    "%F" => START_FG_COLOR,
+    "%f" => END_FG_COLOR,
+    "%K" => START_BG_COLOR,
+    "%k" => END_BG_COLOR,
+    "{" => LBRACE,
+    "}" => RBRACE,
     r#"%([d/])"# => CWD,
     r#"%~"# => CWD_HOME,
-    r#"[^%]*"# => TEXT
+    r#"[A-Z|a-z]*"# => WORD,
+    r#"[01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5]"# => U8,
+} else {
+    r#"[^{}%]*"# => TEXT,
 }
 
 pub PromptCmd: PromptCmd = {
@@ -24,4 +33,13 @@ PromptExpansion: PromptEscape = {
     USERNAME => PromptEscape::Username,
     CWD => PromptEscape::Cwd,
     CWD_HOME => PromptEscape::CwdHome,
+    START_FG_COLOR LBRACE <a: Argument> RBRACE => PromptEscape::FGColorStart(a),
+    END_FG_COLOR => PromptEscape::FGColorEnd,
+    START_BG_COLOR LBRACE <a: Argument> RBRACE => PromptEscape::BGColorStart(a),
+    END_BG_COLOR => PromptEscape::BGColorEnd,
+}
+
+Argument: Argument = {
+    <w: WORD> => Argument::Word(String::from(w)),
+    <n: U8> => Argument::Number(n.parse::<u8>().unwrap()),
 }
