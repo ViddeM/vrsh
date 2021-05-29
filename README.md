@@ -45,9 +45,21 @@ The named colors and their numeric value are as follows:
 - `pink` = 200
 - `yellow` = 220
 
-## Example
+## Examples
+An example of the prompt that I myself currently use is the one below, it is somewhat verbose though.
 
 ```set PROMPT='%F{blue} %~%f %F{orange} as %f %F{purple}%n%f %g %F{brightgreen} ❯ %f'```
+
+Gives the following prompt:
+![prompt example](https://user-images.githubusercontent.com/16452604/120086134-bf04cb80-c0dd-11eb-8ab7-a7e127b9c8c4.png)
+
+Example output from the `vrsh-colors` command:
+![image](https://user-images.githubusercontent.com/16452604/120086187-0db26580-c0de-11eb-8890-c0bc61950560.png)
+
+All screenshots are taken using:
+- Terminal: `Konsole`
+- Theme: `breath2` 
+- Font: `FiraMono Nerd Font 10pt`)
 
 # Current & planned features
 
