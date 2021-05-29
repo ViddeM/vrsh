@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use std::{fmt};
 use std::env::var_os;
+use std::fmt;
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Clone)]
@@ -15,7 +15,9 @@ impl Display for StateError {
         match self {
             StateError::EnvVarNotSet(var) => write!(f, "environment variable {} is not set", var),
             StateError::EnvVarEmpty(var) => write!(f, "environment variable {} is empty", var),
-            StateError::InvalidEnvVar(var) => write!(f, "environment variable {} set to an invalid value", var),
+            StateError::InvalidEnvVar(var) => {
+                write!(f, "environment variable {} set to an invalid value", var)
+            }
         }
     }
 }
@@ -28,7 +30,7 @@ pub struct State {
     pub aliases: HashMap<String, String>,
     pub username: String,
     pub home: String,
-    pub variables: HashMap<String, String>
+    pub variables: HashMap<String, String>,
 }
 
 pub fn new_state() -> Result<State, StateError> {
@@ -40,7 +42,6 @@ pub fn new_state() -> Result<State, StateError> {
         username,
         home: home_dir,
         variables: HashMap::new(),
-
     })
 }
 
@@ -48,14 +49,14 @@ fn get_env_variable(var: &str) -> Result<String, StateError> {
     return match var_os(var) {
         Some(os_s) => {
             if os_s.is_empty() {
-                return Err(StateError::EnvVarEmpty(String::from(var)))
+                return Err(StateError::EnvVarEmpty(String::from(var)));
             }
 
             match os_s.to_str() {
                 None => Err(StateError::InvalidEnvVar(String::from(var))),
-                Some(s) => Ok(s.to_string())
+                Some(s) => Ok(s.to_string()),
             }
         }
-        None => Err(StateError::EnvVarNotSet(String::from(var)))
-    }
+        None => Err(StateError::EnvVarNotSet(String::from(var))),
+    };
 }

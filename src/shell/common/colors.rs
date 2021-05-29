@@ -1,6 +1,6 @@
-use termion::{terminal_size};
-use std::fmt::{Display, Formatter};
 use std::fmt;
+use std::fmt::{Display, Formatter};
+use termion::terminal_size;
 
 pub enum ColorError {
     InvalidColor(String),
@@ -9,7 +9,7 @@ pub enum ColorError {
 impl Display for ColorError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            ColorError::InvalidColor(c) => write!(f, "invalid color {}", c)
+            ColorError::InvalidColor(c) => write!(f, "invalid color {}", c),
         }
     }
 }
@@ -26,6 +26,8 @@ pub enum Color {
     DarkRed,
     BrightGreen,
     Pink,
+    BrightBlue,
+    Yellow,
 }
 
 impl Color {
@@ -42,6 +44,8 @@ impl Color {
             Color::DarkRed => 9,
             Color::BrightGreen => 34,
             Color::Pink => 200,
+            Color::BrightBlue => 123,
+            Color::Yellow => 220,
         }
     }
 
@@ -58,7 +62,9 @@ impl Color {
             "darkred" => Color::DarkRed,
             "brightgreen" => Color::BrightGreen,
             "pink" => Color::Pink,
-            _ => return Err(ColorError::InvalidColor(str.to_string()))
+            "brightblue" => Color::BrightBlue,
+            "yellow" => Color::Yellow,
+            _ => return Err(ColorError::InvalidColor(str.to_string())),
         })
     }
 }
@@ -74,7 +80,11 @@ pub fn test_colors() {
     // Foreground colors
     println!("Foreground:");
     for i in 1..=255 {
-        print!("{}{}", fg_color_code(i), format!("{:<width$}", i, width=char_size as usize));
+        print!(
+            "{}{}",
+            fg_color_code(i),
+            format!("{:<width$}", i, width = char_size as usize)
+        );
         if i % chars_per_line == 0 && i > 0 {
             println!();
         }
@@ -84,7 +94,11 @@ pub fn test_colors() {
     println!("Background:");
     // Background colors
     for i in 1..=255 {
-        print!("{}{}", bg_color_code(i), format!("{:<width$}", i, width=char_size as usize));
+        print!(
+            "{}{}",
+            bg_color_code(i),
+            format!("{:<width$}", i, width = char_size as usize)
+        );
         if i % chars_per_line == 0 && i > 0 {
             println!();
         }

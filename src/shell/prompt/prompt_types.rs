@@ -14,6 +14,7 @@ pub enum PromptEscape {
     FGColorEnd,
     BGColorStart(Argument),
     BGColorEnd,
+    Git,
 }
 
 pub enum Argument {

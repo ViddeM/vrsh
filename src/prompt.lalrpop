@@ -1,4 +1,4 @@
-use crate::shell::common::prompt_types::{PromptEscape, PromptCmdPart, PromptCmd, Argument};
+use crate::shell::prompt::prompt_types::{PromptEscape, PromptCmdPart, PromptCmd, Argument};
 
 grammar;
 
@@ -9,6 +9,7 @@ match {
     "%f" => END_FG_COLOR,
     "%K" => START_BG_COLOR,
     "%k" => END_BG_COLOR,
+    "%g" => GIT,
     "{" => LBRACE,
     "}" => RBRACE,
     r#"%([d/])"# => CWD,
@@ -37,6 +38,7 @@ PromptExpansion: PromptEscape = {
     END_FG_COLOR => PromptEscape::FGColorEnd,
     START_BG_COLOR LBRACE <a: Argument> RBRACE => PromptEscape::BGColorStart(a),
     END_BG_COLOR => PromptEscape::BGColorEnd,
+    GIT => PromptEscape::Git,
 }
 
 Argument: Argument = {
