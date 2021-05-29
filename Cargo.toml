@@ -3,6 +3,8 @@ name = "vrsh"
 version = "0.1.0"
 authors = ["Vidar Magnusson <vrsh@vidarmagnusson.com>"]
 edition = "2018"
+description = "A simple shell written for my own learning."
+license = "AGPL-3.0"
 
 build = "lalrpop-build.rs" # LALRPOP preprocessing
 
