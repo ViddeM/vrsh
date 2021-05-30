@@ -132,5 +132,5 @@ pub fn bg_color(color: Color) -> String {
 }
 
 pub fn reset_color() -> String {
-    String::from("\x1b[0m")
+    format!("\x1b[0m")
 }
