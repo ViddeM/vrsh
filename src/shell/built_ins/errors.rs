@@ -10,6 +10,7 @@ pub enum BuiltInError {
     FailedToSpawnChild(String, std::io::Error),
     InvalidArgument,
     IOError(std::io::Error),
+    NoSuchProgram(String),
 }
 
 impl Display for BuiltInError {
@@ -26,6 +27,7 @@ impl Display for BuiltInError {
             BuiltInError::FailedToSpawnChild(cmd, e) => {
                 write!(f, "failed to spawn child for command {}: {}", cmd, e)
             }
+            BuiltInError::NoSuchProgram(program) => write!(f, "no such program {}", program),
         }
     }
 }

@@ -1,4 +1,5 @@
 use crate::shell::built_ins::errors::BuiltInError;
+use crate::shell::common::search_path::is_valid_program_name;
 use crate::shell::common::types::{CmdPart, Redirect};
 use std::fs::File;
 use std::process::{Child, Command, Stdio};
@@ -48,6 +49,10 @@ fn open_redirect_file(file: String) -> Result<Stdio, BuiltInError> {
 }
 
 fn run_command(part: CmdPart, output: Stdio, input: Stdio) -> Result<Child, BuiltInError> {
+    if is_valid_program_name(&part.cmd) == false {
+        return Err(BuiltInError::NoSuchProgram(part.cmd.clone()));
+    }
+
     return match Command::new(&part.cmd)
         .args(
             part.args
