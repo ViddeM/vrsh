@@ -1,12 +1,15 @@
-use std::fmt::{Formatter, Display};
 use std::fmt;
+use std::fmt::{Display, Formatter};
+use std::io::Error;
 
 pub enum BuiltInError {
     NoArgument,
     FailedToExtractArg,
     TooManyArguments(usize, usize),
     FailedToChangeDir(std::io::Error),
-    InvalidArgument
+    FailedToSpawnChild(String, std::io::Error),
+    InvalidArgument,
+    IOError(std::io::Error),
 }
 
 impl Display for BuiltInError {
@@ -14,9 +17,21 @@ impl Display for BuiltInError {
         match self {
             BuiltInError::NoArgument => write!(f, "no argument provided"),
             BuiltInError::FailedToExtractArg => write!(f, "failed to extract argument"),
-            BuiltInError::TooManyArguments(got, expected) => write!(f, "too many arguments, got {}, expected {}", got, expected),
+            BuiltInError::TooManyArguments(got, expected) => {
+                write!(f, "too many arguments, got {}, expected {}", got, expected)
+            }
             BuiltInError::FailedToChangeDir(e) => write!(f, "failed to change dir: {}", e),
-            BuiltInError::InvalidArgument => write!(f, "invalid argument")
+            BuiltInError::InvalidArgument => write!(f, "invalid argument"),
+            BuiltInError::IOError(e) => write!(f, "ioerror: {}", e),
+            BuiltInError::FailedToSpawnChild(cmd, e) => {
+                write!(f, "failed to spawn child for command {}: {}", cmd, e)
+            }
         }
+    }
+}
+
+impl From<std::io::Error> for BuiltInError {
+    fn from(e: Error) -> Self {
+        BuiltInError::IOError(e)
     }
 }
