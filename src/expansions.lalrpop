@@ -2,17 +2,9 @@ use crate::shell::common::types::{InitialCmd, InitialCmdPart, InitialCmdOrCommen
 
 grammar;
 
-match {
-    "$(" => CALCULATION_BEGINNING,
-    ")" => CALCULATION_END,
-    r#"[^$()#']+"# => TEXT,
-    r#"#[^#\n\r]*[\n\r]*"# => COMMENT, // '#' comment
-    r#"'[^']*'"# => SINGLE_QUOTE_STRING,
-}
-
 pub InitialCmdOrComment: InitialCmdOrComment = {
     <cmd: InitialCmd> => InitialCmdOrComment::InitialCmd(cmd),
-    COMMENT => InitialCmdOrComment::Comment,
+    r#"#[^#\n\r]*[\n\r]*"# => InitialCmdOrComment::Comment,
 }
 
 InitialCmd: InitialCmd = {
@@ -22,7 +14,7 @@ InitialCmd: InitialCmd = {
 }
 
 InitialCmdPart: InitialCmdPart = {
-    <str: SINGLE_QUOTE_STRING> => InitialCmdPart::SingleQuotedString(String::from(str)),
-    CALCULATION_BEGINNING <cmd: InitialCmd> CALCULATION_END => InitialCmdPart::Calculation(cmd),
-    <text: TEXT> => InitialCmdPart::String(String::from(text)),
+    <str: r#"'[^']*'"#> => InitialCmdPart::SingleQuotedString(String::from(str)),
+    "$(" <cmd: InitialCmd> ")" => InitialCmdPart::Calculation(cmd),
+    <text: r#"[^$#']+"#> => InitialCmdPart::String(String::from(text)),
 }
