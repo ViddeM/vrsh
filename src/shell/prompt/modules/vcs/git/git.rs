@@ -64,13 +64,15 @@ fn get_branch_info(repo: &Repository) -> Result<String, GitError> {
 
             let branch = repo.find_branch(branch_name, BranchType::Local)?;
             let github = github_string(&branch, repo)?;
+            let upstream_info = upstream_info(&branch, repo)?;
 
             format!(
-                "{}{} {} {}{}",
+                "{}{} {} {}{}{}",
                 fg_color(Color::BrightBlue),
                 github,
                 fg_color(Color::BrightGreen),
                 branch_name,
+                upstream_info,
                 reset_color(),
             )
         }
@@ -84,7 +86,12 @@ fn get_branch_info(repo: &Repository) -> Result<String, GitError> {
 }
 
 fn github_string(branch: &Branch, repo: &Repository) -> Result<String, GitError> {
-    Ok(match branch.upstream()?.name()? {
+    Ok(match (match branch.upstream() {
+        Ok(v) => v,
+        Err(_) => return Ok(String::new()),
+    })
+    .name()?
+    {
         None => "",
         Some(upstream_name) => match upstream_name.split("/").into_iter().next() {
             None => "",
@@ -101,6 +108,42 @@ fn github_string(branch: &Branch, repo: &Repository) -> Result<String, GitError>
         },
     }
     .to_string())
+}
+
+fn upstream_info(branch: &Branch, repo: &Repository) -> Result<String, GitError> {
+    let local_object = repo.revparse_single(match branch.name()? {
+        Some(v) => v,
+        None => return Ok(String::new()),
+    })?;
+    let local_commit = local_object.peel_to_commit()?;
+
+    let remote_object = repo.revparse_single(
+        match (match branch.upstream() {
+            Ok(v) => v,                         // The branch has a remote
+            Err(_) => return Ok(String::new()), // The branch doesn't have a remote
+        })
+        .name()?
+        {
+            Some(v) => v,
+            None => return Ok(String::new()),
+        },
+    )?;
+    let remote_commit = remote_object.peel_to_commit()?;
+
+    let (ahead, behind) = repo.graph_ahead_behind(local_commit.id(), remote_commit.id())?;
+    let ahead_string = if ahead > 0 {
+        format!(" ↑{}", ahead)
+    } else {
+        String::new()
+    };
+
+    let behind_string = if behind > 0 {
+        format!(" ↓{}", behind)
+    } else {
+        String::new()
+    };
+
+    Ok(format!("{}{}", ahead_string, behind_string))
 }
 
 fn get_status_info(repo: &Repository) -> Result<String, GitError> {
