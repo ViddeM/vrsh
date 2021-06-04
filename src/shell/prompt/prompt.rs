@@ -15,7 +15,7 @@ use std::io::Error;
 
 use crate::prompt::PromptCmdParser;
 
-pub enum ReadError {
+pub enum PromptError {
     Ignore,
     RLError(ReadlineError),
     LalrpopError(String),
@@ -26,46 +26,46 @@ pub enum ReadError {
     GitError(GitError),
 }
 
-impl Display for ReadError {
+impl Display for PromptError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            ReadError::IO(e) => write!(f, "io error: '{}'", e),
-            ReadError::NoWorkingDir => write!(f, "failed to retrieve current working directory"),
-            ReadError::RLError(e) => write!(f, "readline encountered an error: {}", e),
-            ReadError::LalrpopError(s) => write!(f, "lalrpop error: {}", s),
-            ReadError::ParseError(e) => write!(f, "parse error: {}", e),
-            ReadError::ColorError(e) => write!(f, "color error: {}", e),
-            ReadError::GitError(e) => write!(f, "git error: {}", e),
-            ReadError::Ignore => write!(f, "ignored error"),
+            PromptError::IO(e) => write!(f, "io error: '{}'", e),
+            PromptError::NoWorkingDir => write!(f, "failed to retrieve current working directory"),
+            PromptError::RLError(e) => write!(f, "readline encountered an error: {}", e),
+            PromptError::LalrpopError(s) => write!(f, "lalrpop error: {}", s),
+            PromptError::ParseError(e) => write!(f, "parse error: {}", e),
+            PromptError::ColorError(e) => write!(f, "color error: {}", e),
+            PromptError::GitError(e) => write!(f, "git error: {}", e),
+            PromptError::Ignore => write!(f, "ignored error"),
         }
     }
 }
 
-impl From<std::io::Error> for ReadError {
+impl From<std::io::Error> for PromptError {
     fn from(err: Error) -> Self {
-        ReadError::IO(err)
+        PromptError::IO(err)
     }
 }
 
-impl From<ColorError> for ReadError {
+impl From<ColorError> for PromptError {
     fn from(c: ColorError) -> Self {
-        ReadError::ColorError(c)
+        PromptError::ColorError(c)
     }
 }
 
-impl From<ParseError> for ReadError {
+impl From<ParseError> for PromptError {
     fn from(e: ParseError) -> Self {
-        ReadError::ParseError(e)
+        PromptError::ParseError(e)
     }
 }
 
-impl From<GitError> for ReadError {
+impl From<GitError> for PromptError {
     fn from(e: GitError) -> Self {
-        ReadError::GitError(e)
+        PromptError::GitError(e)
     }
 }
 
-pub fn read_input(rl: &mut Editor<RLHelper>, state: &mut State) -> Result<String, ReadError> {
+pub fn read_input(rl: &mut Editor<RLHelper>, state: &mut State) -> Result<String, PromptError> {
     let prompt = match get_prompt(state) {
         Ok(v) => v,
         Err(e) => {
@@ -77,9 +77,9 @@ pub fn read_input(rl: &mut Editor<RLHelper>, state: &mut State) -> Result<String
         Ok(val) => val,
         Err(e) => {
             return match e {
-                ReadlineError::Interrupted => Err(ReadError::Ignore),
-                ReadlineError::Eof => Err(ReadError::Ignore),
-                _ => Err(ReadError::RLError(e)),
+                ReadlineError::Interrupted => Err(PromptError::Ignore),
+                ReadlineError::Eof => Err(PromptError::Ignore),
+                _ => Err(PromptError::RLError(e)),
             }
         }
     };
@@ -87,12 +87,12 @@ pub fn read_input(rl: &mut Editor<RLHelper>, state: &mut State) -> Result<String
     Ok(input)
 }
 
-fn get_prompt(state: &mut State) -> Result<String, ReadError> {
+fn get_prompt(state: &mut State) -> Result<String, PromptError> {
     if let Some(p) = state.variables.get("PROMPT") {
         let expanded = match parse_initial_cmd(&p.clone(), state) {
             Ok(v) => v,
             Err(ParseError::Comment | ParseError::InputEmpty) => "".to_string(),
-            Err(e) => return Err(ReadError::from(e)),
+            Err(e) => return Err(PromptError::from(e)),
         };
 
         let expanded_prompt = prompt_expand(&expanded, state)?;
@@ -102,7 +102,7 @@ fn get_prompt(state: &mut State) -> Result<String, ReadError> {
     let curr_dir = current_dir()?;
     let wd = match curr_dir.to_str() {
         Some(dir) => dir,
-        None => return Err(ReadError::NoWorkingDir),
+        None => return Err(PromptError::NoWorkingDir),
     };
 
     let prompt = wd.replace(state.home.as_str(), HOME);
@@ -110,10 +110,10 @@ fn get_prompt(state: &mut State) -> Result<String, ReadError> {
     return Ok(format!("{} > ", prompt));
 }
 
-fn prompt_expand(input: &str, state: &mut State) -> Result<String, ReadError> {
+fn prompt_expand(input: &str, state: &mut State) -> Result<String, PromptError> {
     let prompt_cmd: PromptCmd = match PromptCmdParser::new().parse(input) {
         Ok(v) => v,
-        Err(e) => return Err(ReadError::LalrpopError(e.to_string())),
+        Err(e) => return Err(PromptError::LalrpopError(e.to_string())),
     };
 
     let mut str = String::from("");
@@ -131,7 +131,7 @@ fn prompt_expand(input: &str, state: &mut State) -> Result<String, ReadError> {
     Ok(str)
 }
 
-fn handle_prompt_escape(e: PromptEscape, state: &mut State) -> Result<String, ReadError> {
+fn handle_prompt_escape(e: PromptEscape, state: &mut State) -> Result<String, PromptError> {
     Ok(match e {
         PromptEscape::EscapeChar => String::from("%"),
         PromptEscape::Username => state.username.clone(),
@@ -139,14 +139,14 @@ fn handle_prompt_escape(e: PromptEscape, state: &mut State) -> Result<String, Re
             let curr_dir = current_dir()?;
             match curr_dir.to_str() {
                 Some(dir) => dir.to_string(),
-                None => return Err(ReadError::NoWorkingDir),
+                None => return Err(PromptError::NoWorkingDir),
             }
         }
         PromptEscape::CwdHome => {
             let curr_dir = current_dir()?;
             let cwd = match curr_dir.to_str() {
                 Some(dir) => dir,
-                None => return Err(ReadError::NoWorkingDir),
+                None => return Err(PromptError::NoWorkingDir),
             };
             cwd.replace(state.home.as_str(), &format!("{}", HOME)) // 🏠
         }

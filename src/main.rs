@@ -11,7 +11,7 @@ use signal_hook::consts::SIGINT;
 
 use crate::shell::common::state::{new_state, State};
 use crate::shell::common::types::Cmd;
-use crate::shell::prompt::prompt::{read_input, ReadError};
+use crate::shell::prompt::prompt::{read_input, PromptError};
 use shell::handle_command::{handle_command, CommandStatus};
 use shell::parse_command::parse_input;
 use shell::parse_command::ParseError;
@@ -70,7 +70,7 @@ fn main() {
         let input = match read_input(rl.borrow_mut(), &mut state) {
             Ok(v) => v,
             Err(e) => match e {
-                ReadError::Ignore => continue,
+                PromptError::Ignore => continue,
                 _ => {
                     println!("vrsh: failed to read input 🔎: {}", e);
                     continue;
