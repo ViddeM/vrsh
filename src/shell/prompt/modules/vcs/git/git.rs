@@ -50,31 +50,37 @@ pub fn get_git_prompt() -> Result<String, GitError> {
 }
 
 fn get_branch_info(repo: &Repository) -> Result<String, GitError> {
-    let branch_info = match repo.head()?.name() {
-        None => {
-            // print  @<commit_name>
-            let commit_hash = repo.head()?.peel_to_commit()?.id();
-            format!("{} @{}", fg_color(Color::BrightGreen), commit_hash)
-        }
-        Some(name) => {
-            let branch_name = match name.strip_prefix("refs/heads/") {
-                None => return Err(InvalidBranchName(String::from(name))),
-                Some(n) => n,
-            };
+    let branch_info = match repo.head() {
+        Ok(val) => match val.name() {
+            None => {
+                // print  @<commit_name>
+                let commit_hash = repo.head()?.peel_to_commit()?.id();
+                format!("{} @{}", fg_color(Color::BrightGreen), commit_hash)
+            }
+            Some(name) => {
+                let branch_name = match name.strip_prefix("refs/heads/") {
+                    None => return Err(InvalidBranchName(String::from(name))),
+                    Some(n) => n,
+                };
 
-            let branch = repo.find_branch(branch_name, BranchType::Local)?;
-            let github = github_string(&branch, repo)?;
-            let upstream_info = upstream_info(&branch, repo)?;
+                let branch = repo.find_branch(branch_name, BranchType::Local)?;
+                let github = github_string(&branch, repo)?;
+                let upstream_info = upstream_info(&branch, repo)?;
 
-            format!(
-                "{}{} {} {}{}{}",
-                fg_color(Color::BrightBlue),
-                github,
-                fg_color(Color::BrightGreen),
-                branch_name,
-                upstream_info,
-                reset_color(),
-            )
+                format!(
+                    "{}{} {} {}{}{}",
+                    fg_color(Color::BrightBlue),
+                    github,
+                    fg_color(Color::BrightGreen),
+                    branch_name,
+                    upstream_info,
+                    reset_color(),
+                )
+            }
+        },
+        _ => {
+            // Assume that the error is caused by the repository being empty (no commits).
+            format!("{} init", fg_color(Color::BrightGreen))
         }
     };
 
