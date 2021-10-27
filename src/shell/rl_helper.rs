@@ -1,4 +1,5 @@
 use crate::shell::colors;
+use crate::shell::common::colors::{fg_color, Color};
 use rustyline::completion::{Completer, FilenameCompleter, Pair};
 use rustyline::error::ReadlineError;
 use rustyline::highlight::{Highlighter, MatchingBracketHighlighter};
@@ -50,7 +51,7 @@ impl Highlighter for RLHelper {
     }
 
     fn highlight_hint<'h>(&self, hint: &'h str) -> Cow<'h, str> {
-        Owned(colors::MAGENTA.to_owned() + hint + colors::RESET)
+        Owned(fg_color(Color::Gray) + hint + colors::RESET)
     }
 
     fn highlight_char(&self, line: &str, pos: usize) -> bool {
