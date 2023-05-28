@@ -12,6 +12,7 @@ use std::env::current_dir;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::io::Error;
+use std::path::Path;
 
 use crate::prompt::PromptCmdParser;
 
@@ -149,6 +150,39 @@ fn handle_prompt_escape(e: PromptEscape, state: &mut State) -> Result<String, Pr
                 None => return Err(PromptError::NoWorkingDir),
             };
             cwd.replace(state.home.as_str(), &format!("{}", HOME)) // 🏠
+        }
+        PromptEscape::CwdHomeParents => {
+            let curr_dir = current_dir()?;
+            let full_path = curr_dir.to_str().ok_or(PromptError::NoWorkingDir)?;
+            if full_path == state.home.as_str() {
+                format!("")
+            } else {
+                let cwd = curr_dir
+                    .as_path()
+                    .parent()
+                    .unwrap_or(Path::new(""))
+                    .to_str()
+                    .ok_or(PromptError::NoWorkingDir)?;
+
+                match cwd {
+                    "/" => format!(""),
+                    cwd => cwd.replace(state.home.as_str(), &format!("{}", HOME)), // 🏠
+                }
+            }
+        }
+        PromptEscape::CwdHomeCurrent => {
+            let curr_dir = current_dir()?;
+            let full_path = curr_dir.to_str().ok_or(PromptError::NoWorkingDir)?;
+            if full_path == state.home.as_str() {
+                format!("{HOME}/")
+            } else {
+                match curr_dir.as_path().file_name() {
+                    Some(os_str) => {
+                        format!("/{}", os_str.to_str().ok_or(PromptError::NoWorkingDir)?)
+                    }
+                    None => format!("/"),
+                }
+            }
         }
         PromptEscape::FGColorStart(color_arg) => match color_arg {
             Argument::Number(n) => fg_color_code(n),

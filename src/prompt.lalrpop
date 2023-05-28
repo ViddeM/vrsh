@@ -14,6 +14,8 @@ match {
     "}" => RBRACE,
     r#"%([d/])"# => CWD,
     r#"%~"# => CWD_HOME,
+    r#"%~>"# => CWD_HOME_CURRENT,
+    r#"%~<"# => CWD_HOME_PARENTS,
     r#"[A-Z|a-z]*"# => WORD,
     r#"[0-1]?[0-9]?[0-9]"# => U8_LOW, // 0 -> 199
     r#"2[0-4][0-9]"# => U8_MID, // 200 -> 249
@@ -42,6 +44,8 @@ PromptExpansion: PromptEscape = {
     USERNAME => PromptEscape::Username,
     CWD => PromptEscape::Cwd,
     CWD_HOME => PromptEscape::CwdHome,
+    CWD_HOME_CURRENT => PromptEscape::CwdHomeCurrent,
+    CWD_HOME_PARENTS => PromptEscape::CwdHomeParents,
     START_FG_COLOR LBRACE <a: Argument> RBRACE => PromptEscape::FGColorStart(a),
     END_FG_COLOR => PromptEscape::FGColorEnd,
     START_BG_COLOR LBRACE <a: Argument> RBRACE => PromptEscape::BGColorStart(a),

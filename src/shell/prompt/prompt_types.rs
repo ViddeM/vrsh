@@ -10,6 +10,8 @@ pub enum PromptEscape {
     Username,
     Cwd,
     CwdHome,
+    CwdHomeParents, // Only the parent directories of the current working directory
+    CwdHomeCurrent, // Only the current directory (not the parents)
     FGColorStart(Argument),
     FGColorEnd,
     BGColorStart(Argument),

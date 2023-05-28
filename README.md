@@ -26,6 +26,8 @@ The following prompt expansions are currently supported:
 -   `%g` prints git information according to the built-in git module (used in the [example](#example) below).
 -   `%d` or `%/` print the current working directory in full.
 -   `%~` prints the current working directory but replaces `/home/current_user` to `~/`.
+-   `%~>` prints only the current directory with a leading `/` (e.g. if the current path is `/var/log`, this will print `/log`). If the current working directory is `/home/current_user` it will instead print `~/`.
+-   `%-<` prints only the parent directories of the current directory (e.g. if in `/var/log` this will print `/var`). If the current directory is root (`/`) nothing will be printed.
 
 ### Prompt expansion colors
 To test colors in the current terminal, one can use the `vrsh-colors` 
@@ -52,6 +54,12 @@ An example of the prompt that I myself currently use is the one below, it is som
 
 Gives the following prompt:
 ![prompt example](https://user-images.githubusercontent.com/16452604/120086134-bf04cb80-c0dd-11eb-8ab7-a7e127b9c8c4.png)
+
+One can utilize the `%~<` and `%~>` options to print the full path but only highlight the current directory, for example:
+
+```set PROMPT='%F{31} %~<%f %F{51}%~>%f %F{214} as %f %F{170}%n%f %g %F{46} ❯ %f'```
+
+Gives the following prompt:
 
 Example output from the `vrsh-colors` command:
 ![image](https://user-images.githubusercontent.com/16452604/120086187-0db26580-c0de-11eb-8890-c0bc61950560.png)
