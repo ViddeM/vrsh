@@ -57,6 +57,9 @@ fn get_branch_info(repo: &Repository) -> Result<String, GitError> {
                 let commit_hash = repo.head()?.peel_to_commit()?.id();
                 format!("{} @{}", fg_color(Color::BrightGreen), commit_hash)
             }
+            Some("HEAD") => {
+                format!("{} @HEAD", fg_color(Color::BrightGreen))
+            }
             Some(name) => {
                 let branch_name = match name.strip_prefix("refs/heads/") {
                     None => return Err(InvalidBranchName(String::from(name))),
