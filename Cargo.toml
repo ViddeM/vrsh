@@ -1,6 +1,6 @@
 [package]
 name = "vrsh"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Vidar Magnusson <crates.io@vidarmagnusson.com>"]
 edition = "2018"
 description = "A simple shell written for my own learning."
