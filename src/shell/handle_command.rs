@@ -5,12 +5,11 @@ use crate::shell::built_ins::execute_command::execute_command;
 use crate::shell::built_ins::set_variable::set_variable;
 use crate::shell::common::colors::{bg_color, fg_color, reset_color, test_colors, Color};
 use crate::shell::common::state::State;
-use crate::shell::common::types::{Cmd, CmdPart, CmdType, Redirect};
+use crate::shell::common::types::{Cmd, CmdType};
 use std::fmt;
 use std::fmt::{Display, Formatter};
-use std::fs::File;
 use std::io::Read;
-use std::process::{Child, ChildStdout, Command, Stdio};
+use std::process::{Child, ChildStdout, Stdio};
 use termion::cursor::DetectCursorPos;
 use termion::raw::IntoRawMode;
 
