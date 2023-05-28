@@ -53,10 +53,8 @@ fn main() {
     let mut rl = Editor::with_config(config);
     rl.set_helper(Some(helper));
 
-    match rl.load_history(history_file.as_str()) {
-        Err(e) => println!("vrsh: failed to read history file 📖: {}", e),
-        _ => {}
-    };
+    rl.load_history(history_file.as_str())
+        .unwrap_or_else(|e| println!("vrsh: failed to read history file 📖: {}", e));
 
     // Read the init_file line by line.
     let init_file = format!("{}/.vrshrc", state.home);
