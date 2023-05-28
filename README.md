@@ -51,9 +51,9 @@ The named colors and their numeric value are as follows:
 An example of the prompt that I myself currently use is the one below, it is somewhat verbose though.
 
 ```set PROMPT='%F{blue} %~%f %F{orange} as %f %F{purple}%n%f %g %F{brightgreen} ❯ %f'```
-
+PROMPT
 Gives the following prompt:
-![prompt example](https://user-images.githubusercontent.com/16452604/120086134-bf04cb80-c0dd-11eb-8ab7-a7e127b9c8c4.png)
+![prompt example](docs/images/example_prompt_1.png)
 
 One can utilize the `%~<` and `%~>` options to print the full path but only highlight the current directory, for example:
 
@@ -61,13 +61,11 @@ One can utilize the `%~<` and `%~>` options to print the full path but only high
 
 Gives the following prompt:
 
-Example output from the `vrsh-colors` command:
-![image](https://user-images.githubusercontent.com/16452604/120086187-0db26580-c0de-11eb-8890-c0bc61950560.png)
+![prompt example 2](docs/images/example_prompt_2.png)
 
-All screenshots are taken using:
-- Terminal: `Konsole`
-- Theme: `breath2` 
-- Font: `FiraMono Nerd Font 10pt`)
+Example output from the `vrsh-colors` command:
+
+![vrsh-colors example](docs/images/example_vrsh_colors_output.png) 
 
 # Current & planned features
 
